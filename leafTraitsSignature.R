@@ -36,22 +36,9 @@ write.csv(test.data,file=paste(out.dir,"Splitted_test_Dataset.csv",sep=""),row.n
 rm(eval.set)
 #--------------------------------------------------------------------------------------------------#
 # Run calibration PLSR analysis to select optimal number of components
-pls.mod.train <- pls.cal(train.data, rep(15,5), FALSE)
+pls.mod.train <- pls.cal(train.data, rep(15,5))
 #--------------------------------------------------------------------------------------------------#
-ncomps = rep(0,5)
-for (j in 1:5) {
-  adj = as.vector(RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))))$val)
-  adj= adj[seq(2,length(adj),2)]
-  ncomps[j] <- ceiling(which(RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))))$val==
-                               min(RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))))$val))/2)-1
-}
-ncomps <- pmin(0.8 * length(test.data[,1]), ncomps, TRUE)
-pls.mod.test <- pls.cal(test.data,ncomps)
-
-# Quick validation diagnostic plots
-predplot(LeafLMA.pls, ncomp = 9:11, newdata = val.plsr.data, asp = 1, line = TRUE,
-         which = c("train","validation", "test"),
-         xlim=c(5,300),ylim=c(5,300))
-
+#calculate number of components given min test RMSEP
+optim.ncomps <- opt.comps(pls.mod.train, test.data)
 #--------------------------------------------------------------------------------------------------#
 

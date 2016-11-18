@@ -47,7 +47,7 @@ sp.corr <- function(X,Y, pwd)
 cut.set<-function(aug.X,out.dir){
   sites <- unique(aug.X$aug.spectra.Site)
   # Sample proportion for cal data
-  prop <- 0.8
+  prop <- 0.7
   
   # Random seed
   create.seed <- FALSE  #TRUE/FALSE
@@ -86,7 +86,7 @@ cut.set<-function(aug.X,out.dir){
 
 
 # Calibration PLS model ---------------------------------------------------
-pls.cal <- function(train.data, comps, scaling){
+pls.cal <- function(train.data, comps, scaling = FALSE, pl = FALSE){
   spectra <- as.matrix(train.data[,7:length(train.data[1,])])
   traits <- as.matrix(train.data[,2:6])
   pls.summ <- list()
@@ -97,52 +97,40 @@ pls.cal <- function(train.data, comps, scaling){
     #standard normal variate transform [log(first derivative)]
     train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
     tmp.pls = plsr(Y ~ X ,scale=scaling, ncomp=comps[j],validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
-    pls.summ[[names(train.data[,2:6])[j]]] <- tmp.pls  
+    pls.summ[[names(train.data[,2:6])[j]]] <- tmp.pls 
+    if (pl) {
+      predplot(tmp.pls, ncomp = 8:14, asp = 1, line = TRUE,which = c("train","validation"),
+               xlim=c(5,300),ylim=c(5,300))
+    }
   }
   return(pls.summ)
 }
 
-# Jackknife test here.  Determine optimal number of components
-opt.comps <- function(train.data, k, comps, i)
-{  
-  dims = dim(train.data)
-  i <- 30
-  k <- 20
-  comps <- 15
-  jk.out <- array(data=NA,dim=c(i,comps+1)) # num of components plus intercept
-  for (j in 1:i) {
-    LeafLMA.pls = plsr(Y~X,scale=FALSE,ncomp=comps,validation="LOO",
-                       trace=TRUE, method = "oscorespls", data=train.data)
-    vec <- as.vector(RMSEP(LeafLMA.pls)$val)
-    vec.sub.adj <- vec[seq(2,length(vec),2)]
-    jk.out[i,] <- vec.sub.adj
-  }
-  
-  # Boxplot of results
-  boxplot(jk.out, xaxt="n",xlab="NUM OF COMPONENTS",ylab="RMSEP") 
-  numcomps <- comps+1
-  axis(1,at=1:numcomps,0:15)
-  box(lwd=2.2)
-  
-  ttest <- t.test(jk.out[,12],jk.out[,13],alternative = "two.sided",paired=F,var.equal = FALSE)
-  ttest
-  
-  rm(LeafLMA.pls,comps,i,iterations,vec,vec.sub.adj,ttest,segs,numcomps)
-  dims <- dim(cal.plsr.data)
-  k <- round(dims[1]/10)
-  segs = cvsegments(dims[1],k = k, type="random")
-  LeafLMA.pls = plsr(LMA_g_DW_m2~Spectra,scale=FALSE,ncomp=15,validation="CV",segments=segs,
-                     trace=TRUE, method = "oscorespls", data=cal.plsr.data)
-  
-  # Examine raw PLSR output
-  summary(LeafLMA.pls)
-  plot(RMSEP(LeafLMA.pls), legendpos = "topright")
-  names(LeafLMA.pls)
-  
-  predplot(LeafLMA.pls, ncomp = 9:11, asp = 1, line = TRUE,which = c("train","validation"),
-           xlim=c(5,300),ylim=c(5,300))
-}
 #--------------------------------------------------------------------------------------------------#
-
-
-
+opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE)
+{
+  ncomps = rep(0,5)
+  spectra <- as.matrix(test.data[,7:length(test.data[1,])])
+  traits <- as.matrix(test.data[,2:6])
+  spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
+  
+  for (j in 1:5) {
+    leaf.trait <- traits[,j]
+    test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
+    rms <- RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))), newdata = test.PLS)$val
+    
+    if(plots.ok){    
+      plot(RMSEP(eval(parse(text = paste('pls$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL RMSEP",
+              xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
+      
+      r2 <- R2(eval(parse(text = paste('pls$',names(Y)[j],sep=""))), newdata = test.PLS)
+      plot(R2(eval(parse(text = paste('pls$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL R2",
+           xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
+    }
+    #adj = as.vector(RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))))$val)
+    rms= rms[seq(2,length(rms),2)]
+    ncomps[j] <- which(rms==min(rms))
+  }
+  ncomps <- pmin(0.8 * length(test.data[,1]), ncomps)
+  return(ncomps)
+}
