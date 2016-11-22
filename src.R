@@ -97,40 +97,64 @@ pls.cal <- function(train.data, comps, scaling = FALSE, pl = FALSE){
     #standard normal variate transform [log(first derivative)]
     train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
     tmp.pls = plsr(Y ~ X ,scale=scaling, ncomp=comps[j],validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
-    pls.summ[[names(train.data[,2:6])[j]]] <- tmp.pls 
     if (pl) {
       predplot(tmp.pls, ncomp = 8:14, asp = 1, line = TRUE,which = c("train","validation"),
                xlim=c(5,300),ylim=c(5,300))
     }
+    pls.summ[[names(train.data[,2:6])[j]]] <- tmp.pls 
   }
   return(pls.summ)
 }
 
 #--------------------------------------------------------------------------------------------------#
-opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE)
+opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE, use.press = TRUE)
 {
   ncomps = rep(0,5)
   spectra <- as.matrix(test.data[,7:length(test.data[1,])])
   traits <- as.matrix(test.data[,2:6])
   spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
-  
+
   for (j in 1:5) {
     leaf.trait <- traits[,j]
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
-    rms <- RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))), newdata = test.PLS)$val
-    
-    if(plots.ok){    
-      plot(RMSEP(eval(parse(text = paste('pls$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL RMSEP",
-              xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
-      
-      r2 <- R2(eval(parse(text = paste('pls$',names(Y)[j],sep=""))), newdata = test.PLS)
-      plot(R2(eval(parse(text = paste('pls$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL R2",
-           xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
+    tmp.pls = eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep="")))
+    #use RMSE as discrimant to determine components optimization
+    if(!use.press){
+      rms <- RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))), newdata = test.PLS)$val
+      if(plots.ok){    
+        plot(RMSEP(eval(parse(text = paste('pls$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL RMSEP",
+             xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
+        
+        r2 <- R2(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))), newdata = test.PLS)
+        plot(R2(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))),estimate=c("test"),newdata = test.PLS), main="MODEL R2",
+             xlab="NUM OF COMPONENTS",ylab="Model Validation RMSEP",lty=1,col="black",cex=1.5,lwd=2)
+      }
+    }else{
+      #--------------------------------------------------------------------------------------------------#
+      # Calculate Q2 statistic
+      q2<- Q2(test.PLS, eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep="")))) 
     }
-    #adj = as.vector(RMSEP(eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep=""))))$val)
-    rms= rms[seq(2,length(rms),2)]
-    ncomps[j] <- which(rms==min(rms))
+    if(!use.press){
+      rms= rms[seq(2,length(rms),2)]
+      ncomps[j] <- which(rms==min(rms))
+    }else{
+      #q2 = q2[seq(2,length(q2),2)]
+      ncomps[j] <- which(q2==min(q2))
+    }
   }
   ncomps <- pmin(0.8 * length(test.data[,1]), ncomps)
   return(ncomps)
+}
+
+Q2 <- function(test.PLS, tmp.pls)
+{
+  dims <- dim(test.PLS)
+  PRESS = tmp.pls$validation$PRESS
+  SS = sum((tmp.pls$Y)^2)
+  TSS = sum((test.PLS$Y-mean(test.PLS$Y))^2)
+  Q2 = 1-(PRESS/TSS)  # using SS not TSS
+  
+  # Calculate RMSECV
+  RMSECV = PRESS/dims[1]
+  return(RMSECV)
 }
