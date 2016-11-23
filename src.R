@@ -107,13 +107,17 @@ pls.cal <- function(train.data, comps, scaling = FALSE, pl = FALSE){
 }
 
 #--------------------------------------------------------------------------------------------------#
-opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE, use.press = TRUE)
+opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE, use.press = TRUE, h0 = FALSE)
 {
-  ncomps = rep(0,5)
+  if(!h0){
+    ncomps = rep(0,5)
+  }else{
+    ncomps <- list()
+  }
   spectra <- as.matrix(test.data[,7:length(test.data[1,])])
   traits <- as.matrix(test.data[,2:6])
   spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
-
+  
   for (j in 1:5) {
     leaf.trait <- traits[,j]
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
@@ -134,15 +138,23 @@ opt.comps <- function(pls.mod.train, test.data, plots.ok = FALSE, use.press = TR
       # Calculate Q2 statistic
       q2<- Q2(test.PLS, eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep="")))) 
     }
-    if(!use.press){
-      rms= rms[seq(2,length(rms),2)]
-      ncomps[j] <- which(rms==min(rms))
+    if(!h0){
+      if(!use.press){
+        rms= rms[seq(2,length(rms),2)]
+        ncomps[j] <- which(rms==min(rms))
+      }else{
+        #q2 = q2[seq(2,length(q2),2)]
+        ncomps[j] <- which(q2==min(q2))
+      }
+      ncomps <- pmin(0.8 * length(test.data[,1]), ncomps)
     }else{
-      #q2 = q2[seq(2,length(q2),2)]
-      ncomps[j] <- which(q2==min(q2))
+      if(!use.press){
+        ncomps[[names(test.data[,2:6])[j]]]  <- rms[seq(2,length(rms),2)]
+      }else{
+        ncomps[[names(test.data[,2:6])[j]]] <- q2
+      }
     }
   }
-  ncomps <- pmin(0.8 * length(test.data[,1]), ncomps)
   return(ncomps)
 }
 
@@ -157,4 +169,49 @@ Q2 <- function(test.PLS, tmp.pls)
   # Calculate RMSECV
   RMSECV = PRESS/dims[1]
   return(RMSECV)
+}
+
+predict.pls <- function(pls.mod.train, test.data, optim.ncomps){
+  spectra <- as.matrix(test.data[,7:length(test.data[1,])])
+  traits <- as.matrix(test.data[,2:6])
+  pred <- list()
+  spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
+  for (j in 1:5) {
+    leaf.trait <- traits[,j]
+    test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
+    pred[[names(test.data[,2:6])[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
+        names(test.data[,2:6])[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response")[,,1])
+  }
+  return(pred)
+}
+
+res.out <- function(pred.val.data, test.data)
+{
+  out <- list()
+  traits <- as.matrix(test.data[,2:6])
+  for (j in 1:5) {
+    # Build output dataset
+    # PLSR Summary statistics
+    pred.data <- as.vector(eval(parse(text = paste('pred.val.data$',
+         names(test.data[,2:6])[j],sep=""))))
+    res <- traits[,j]- pred.data
+    MSE.test <- mean(res^2)
+    RMSE.test <- sqrt(MSE.test)
+    Val.test <- mean(pred.data)-mean(traits[,j])
+    
+    ### Output val dataset
+    temp = data.frame(traits[,j],pred.data,res)
+    names(temp) = c("obs","pred","res")
+    out[[names(train.data[,2:6])[j]]] <- temp 
+  }
+  return(out)
+}
+
+
+VIP <- function(){
+  # VIP Plot
+  waves=seq(500,2400,1)
+  coefs = coef(LeafLMA.pls,ncomp=ncomp,intercept=FALSE) # WITHOUT INTERCEPT FOR PLOTTING
+  vips = VIP(LeafLMA.pls)[ncomp,]
+  
 }

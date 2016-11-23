@@ -38,7 +38,10 @@ rm(eval.set)
 # Run calibration PLSR analysis to select optimal number of components
 pls.mod.train <- pls.cal(train.data, rep(15,5))
 #--------------------------------------------------------------------------------------------------#
-#calculate number of components given min test RMSEP
-optim.ncomps <- opt.comps(pls.mod.train, test.data)
+test.comp <- opt.comps(pls.mod.train, test.data,use.press = FALSE, h0 = TRUE)
+#calculate number of components given min test PRESS or RMSEP
+optim.ncomps <- opt.comps(pls.mod.train, train.data)
 #--------------------------------------------------------------------------------------------------#
+pred.val.data <- predict.pls(pls.mod.train, test.data, optim.ncomps)
+out.data <- res.out(pred.val.data, test.data)
 
