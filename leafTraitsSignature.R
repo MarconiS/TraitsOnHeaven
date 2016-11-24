@@ -15,15 +15,15 @@ Create.fig <- FALSE
 # Set ouput directory
 out.dir = paste(getwd(), "/Outputs/LMA/", sep="") 
 in.dir = paste(getwd(), "/Inputs/", sep="") 
-aug.spectra <- imp.spectra('D17_ASD_Chem.csv', in.dir)
+aug.spectra <- imp.spectra('ASD_Chem.csv', in.dir)
 X <- aug.spectra[,11:length(aug.spectra[1,])]
 Y <- aug.spectra[,6:10]
 #diag.spectra()
 X_corr = cor(as.matrix(X), Y)
 sp.corr(X, Y, out.dir)
 
-# Build full PLSR dataset 
-aug.X <- data.frame(aug.spectra$Site,Y,X[,151:2051])
+# Build full PLSR dataset: from wawelength 500 to 2048
+aug.X <- data.frame(aug.spectra$Site,Y,X[,51:1050])
 
 #--------------------------------------------------------------------------------------------------#
 # Subset data into cal/val by site
@@ -40,7 +40,7 @@ pls.mod.train <- pls.cal(train.data, rep(15,5))
 #--------------------------------------------------------------------------------------------------#
 test.comp <- opt.comps(pls.mod.train, test.data,use.press = FALSE, h0 = TRUE)
 #calculate number of components given min test PRESS or RMSEP
-optim.ncomps <- opt.comps(pls.mod.train, train.data)
+optim.ncomps <- opt.comps(pls.mod.train, train.datak)
 #--------------------------------------------------------------------------------------------------#
 pred.val.data <- predict.pls(pls.mod.train, test.data, optim.ncomps)
 out.data <- res.out(pred.val.data, test.data)

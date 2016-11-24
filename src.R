@@ -18,16 +18,16 @@ imp.spectra <- function(f, pwd)
 sp.corr <- function(X,Y, pwd)
 {
   spec_corr <- data.frame(cor(X, Y))
-  waves <- data.frame(seq(1,2151,1),seq(350,2500,1))
+  waves <- data.frame(seq(1,1050,1),seq(400,2498,2))
   mean.spec <- colMeans(X)
   spec.quant <- apply(X,2,quantile,probs=c(0.05,0.95))
   # Output correlation data
   pdf(paste(pwd, '/','FFT_Spectra_Correlations.pdf',sep=""),height=12,width=8)
   par(mfrow=c(6,1),mar=c(4,4.6,1,1.4)) #B, L, T, R
   matplot(mean.spec, type = "l", lty = 1, ylab = "Reflectance (%)", xaxt = "n",ylim=c(0,0.9))
-  ind <- pretty(seq(from = 350, to = 2500, by = 1)) # Using pretty to standardize the axis
-  ind <- ind[ind >= 350 & ind <= 2500]
-  ind <- (ind - 349) / 1
+  ind <- pretty(seq(from = 400, to = 2498, by = 2)) # Using pretty to standardize the axis
+  ind <- ind[ind >= 400 & ind <= 2498]
+  ind <- (ind - 399) / 1
   axis(1, ind, colnames(X)[ind]) # add column names to wavelengths
   # CIs
   lines(spec.quant[1,],lty=1,col="dark grey")
@@ -198,11 +198,13 @@ res.out <- function(pred.val.data, test.data)
     MSE.test <- mean(res^2)
     RMSE.test <- sqrt(MSE.test)
     Val.test <- mean(pred.data)-mean(traits[,j])
-    
+    r.test <- cor(traits[,j],pred.data)
+    print(r.test)
     ### Output val dataset
-    temp = data.frame(traits[,j],pred.data,res)
-    names(temp) = c("obs","pred","res")
+    temp = data.frame(traits[,j],pred.data,res, r.test, RMSE.test)
+    names(temp) = c("obs","pred","res", "r", "RMSE")
     out[[names(train.data[,2:6])[j]]] <- temp 
+    
   }
   return(out)
 }
