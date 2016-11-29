@@ -5,6 +5,10 @@ rm(list=ls(all=TRUE))   # clear workspace
 library(pls)
 library(plotrix)
 library(prospectr)
+library (leaps)
+library (glmnet)
+library (boot)
+
 source(paste(getwd(), '/src.R', sep=""))
 closeAll()
 
@@ -31,8 +35,6 @@ eval.set <- cut.set(aug.X,out.dir)
 train.data <- eval.set$train
 test.data <- eval.set$test
 ### Output cal data for VIP models
-write.csv(train.data,file=paste(out.dir,"Splitted_train_Dataset.csv",sep=""),row.names=FALSE)
-write.csv(test.data,file=paste(out.dir,"Splitted_test_Dataset.csv",sep=""),row.names=FALSE)
 rm(eval.set)
 #--------------------------------------------------------------------------------------------------#
 # Run calibration PLSR analysis to select optimal number of components
@@ -40,8 +42,15 @@ pls.mod.train <- pls.cal(train.data, rep(15,5))
 #--------------------------------------------------------------------------------------------------#
 test.comp <- opt.comps(pls.mod.train, test.data,use.press = FALSE, h0 = TRUE)
 #calculate number of components given min test PRESS or RMSEP
-optim.ncomps <- opt.comps(pls.mod.train, train.datak)
+optim.ncomps <- opt.comps(pls.mod.train, train.data)
 #--------------------------------------------------------------------------------------------------#
 pred.val.data <- predict.pls(pls.mod.train, test.data, optim.ncomps)
 out.data <- res.out(pred.val.data, test.data)
+#-- run lasso -------------------------------------------------------------------------------------#
+lasso.reg <- lasso.asd(test.data,train.data)
+#-- run step forward selection -------------------------------------------------------------------------------------#
+fwd.reg <- step.fwd(test.data,train.data)
 
+#-- run a generalized linear model with all the features: clearly not a realistic option, 
+#-- since there are more features than observations  --------------------------------------------#
+full.reg<- full.asd(test.data,train.data)

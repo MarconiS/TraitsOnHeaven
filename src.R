@@ -43,6 +43,13 @@ sp.corr <- function(X,Y, pwd)
   dev.off()
 }
 
+predict.regsubsets =function (object ,newdata ,id){
+  form=as.formula (object$call [[2]])
+  mat=model.matrix (form ,newdata )
+  coefi =coef(object ,id=id)
+  xvars =names (coefi )
+  mat[,xvars ]%*% coefi
+}
 
 cut.set<-function(aug.X,out.dir){
   sites <- unique(aug.X$aug.spectra.Site)
@@ -180,7 +187,7 @@ predict.pls <- function(pls.mod.train, test.data, optim.ncomps){
     leaf.trait <- traits[,j]
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
     pred[[names(test.data[,2:6])[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
-        names(test.data[,2:6])[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response")[,,1])
+                                                                                   names(test.data[,2:6])[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response")[,,1])
   }
   return(pred)
 }
@@ -193,7 +200,7 @@ res.out <- function(pred.val.data, test.data)
     # Build output dataset
     # PLSR Summary statistics
     pred.data <- as.vector(eval(parse(text = paste('pred.val.data$',
-         names(test.data[,2:6])[j],sep=""))))
+                                                   names(test.data[,2:6])[j],sep=""))))
     res <- traits[,j]- pred.data
     MSE.test <- mean(res^2)
     RMSE.test <- sqrt(MSE.test)
@@ -209,11 +216,86 @@ res.out <- function(pred.val.data, test.data)
   return(out)
 }
 
+# GLM with the whole spectrum:clearly can't work, since features are more than observations --------------
+full.asd <- function(test.data,train.data){
+  traits <- train.data[,2:6]
+  leaf.spec <- train.data[,7:length(train.data[1,])]
+  test.traits <- test.data[,2:6]
+  test.spec <- test.data[,7:length(test.data[1,])]
+  out <- list()
+  for (jk in 1:5) {
+    #for consistency, and considering that this case is not a reliable model anyway, 
+    # I just used the same validation splitted dataset as in the other 3 regression techniques.  
+    data = data.frame(traits[,jk], leaf.spec)
+    colnames(data)[1] <- "Y"
+    #glm or lm are the same in this case (using gaussian family as default)
+    glm.fit=glm(Y~.,data=data[folds !=j,])
 
-VIP <- function(){
-  # VIP Plot
-  waves=seq(500,2400,1)
-  coefs = coef(LeafLMA.pls,ncomp=ncomp,intercept=FALSE) # WITHOUT INTERCEPT FOR PLOTTING
-  vips = VIP(LeafLMA.pls)[ncomp,]
-  
+    data.test <- data.frame(test.traits[,jk], test.spec)
+    colnames(data.test)[1] <- "Y"
+    full.mse <- mean((predict(glm.fit, data.test) - test.traits[,jk])^2)
+    full.adjr2 <- 1-length(test.traits[,1]) * full.mse / sum((test.traits[,jk]-mean(test.traits[,jk]))^2)
+    out[[names(train.data[,2:6])[jk]]] <- list(mse= full.mse,  adjR2 = full.adjr2) 
+  }
 }
+
+# STEPWISE FORWARD SELECTION ----------------------------------------------
+
+step.fwd <- function(test.data,train.data){
+  traits <- train.data[,2:6]
+  leaf.spec <- train.data[,7:length(train.data[1,])]
+  test.traits <- test.data[,2:6]
+  test.spec <- test.data[,7:length(test.data[1,])]
+  out <- list()
+  folds = cut(seq(1,nrow(train.data)), breaks=10, labels=FALSE)
+  for (jk in 1:5) {
+    cv.errors =matrix (NA ,10,40,dimnames =list(NULL , paste (1:40) ))
+    data = data.frame(traits[,jk], leaf.spec)
+    colnames(data)[1] <- "Y"
+    for(j in 1:10){
+      best.fit =regsubsets(Y~.,data=data[folds !=j,],nvmax =40, method='forward')
+      for(i in 1:40) {
+        pred=predict.regsubsets(best.fit ,(data[folds ==j,]), id=i)
+        cv.errors[j,i] <- mean((data$Y[folds ==j]-pred)^2)
+      }
+    }
+    mean.cv.errors =apply(cv.errors ,2, mean)
+    best <- which.min(mean.cv.errors)
+    
+    data.test <- data.frame(test.traits[,jk], test.spec)
+    colnames(data.test)[1] <- "Y"
+    reg.best=regsubsets(Y~.,data=data , nvmax =best,  method='backward')
+    best.pred = predict.regsubsets(reg.best, data.test, id=as.integer(best))
+    stp.mse <- mean((best.pred - test.traits[,jk])^2)
+    stp.adjr2 <- 1-length(test.traits[,1]) * stp.mse / sum((test.traits[,jk]-mean(test.traits[,jk]))^2)
+    out[[names(train.data[,2:6])[jk]]] <- list(coeff=coef(reg.best, best), mse= stp.mse,  adjR2 = stp.adjr2)
+  }
+  return(out)
+}
+
+
+# LASSO SELECTION ----------------------------------------------
+
+lasso.asd <- function(test.data,train.data)
+{
+  grid =10^ seq (10,-2, length =100)
+  traits <- train.data[,2:6]
+  leaf.spec <- train.data[,7:length(train.data[1,])]
+  test.traits <- test.data[,2:6]
+  test.spec <- test.data[,7:length(test.data[1,])]
+  out <- list()
+  for (j in 1:5) {
+    leaf.trait <- traits[,j]
+    lasso.mod =glmnet(as.matrix(leaf.spec),as.vector(leaf.trait),alpha =1, lambda =grid)
+    cv.out =cv.glmnet(as.matrix(leaf.spec),as.vector(leaf.trait),alpha =1)
+    bestlam =cv.out$lambda.min
+    lasso.pred=predict(lasso.mod ,s=bestlam ,newx=as.matrix(test.spec))
+    lasso.mse <- mean((lasso.pred - test.traits[,j])^2)
+    lasso.r2 <- 1-length(test.traits[,1]) * lasso.mse / sum((test.traits[,j]-mean(test.traits[,j]))^2)
+    lasso.coef=predict(lasso.mod ,type ="coefficients" ,s=bestlam ) #[1:41,]
+    lasso.coef[lasso.coef !=0]
+    out[[names(train.data[,2:6])[j]]] <- list(coeff = lasso.coef, mse = lasso.mse, r2=lasso.r2)
+  }
+  return(out)
+}
+
