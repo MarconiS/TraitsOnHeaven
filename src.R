@@ -44,11 +44,11 @@ sp.corr <- function(X,Y, pwd)
 }
 
 predict.regsubsets =function (object ,newdata ,id){
-  form=as.formula (object$call [[2]])
+  form=as.formula(Y~.)
   mat=model.matrix (form ,newdata )
   coefi =coef(object ,id=id)
   xvars =names (coefi )
-  mat[,xvars ]%*% coefi
+  return(mat[,xvars ]%*% coefi)
 }
 
 cut.set<-function(aug.X,out.dir){
@@ -255,7 +255,7 @@ step.fwd <- function(test.data,train.data){
     for(j in 1:10){
       best.fit =regsubsets(Y~.,data=data[folds !=j,],nvmax =40, method='forward')
       for(i in 1:40) {
-        pred=predict.regsubsets(best.fit ,(data[folds ==j,]), id=i)
+        pred=predict.regsubsets(best.fit, (as.data.frame(data[folds ==j,])), id=i)
         cv.errors[j,i] <- mean((data$Y[folds ==j]-pred)^2)
       }
     }

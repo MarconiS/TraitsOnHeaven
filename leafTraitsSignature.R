@@ -34,6 +34,7 @@ aug.X <- data.frame(aug.spectra$Site,Y,X[,51:1050])
 eval.set <- cut.set(aug.X,out.dir)
 train.data <- eval.set$train
 test.data <- eval.set$test
+
 ### Output cal data for VIP models
 rm(eval.set)
 #--------------------------------------------------------------------------------------------------#
@@ -46,11 +47,11 @@ optim.ncomps <- opt.comps(pls.mod.train, train.data)
 #--------------------------------------------------------------------------------------------------#
 pred.val.data <- predict.pls(pls.mod.train, test.data, optim.ncomps)
 out.data <- res.out(pred.val.data, test.data)
+#-- run a generalized linear model with all the features: clearly not a realistic option, 
+#-- since there are more features than observations  --------------------------------------------#
+full.reg<- full.asd(test.data,train.data)
 #-- run lasso -------------------------------------------------------------------------------------#
 lasso.reg <- lasso.asd(test.data,train.data)
 #-- run step forward selection -------------------------------------------------------------------------------------#
 fwd.reg <- step.fwd(test.data,train.data)
 
-#-- run a generalized linear model with all the features: clearly not a realistic option, 
-#-- since there are more features than observations  --------------------------------------------#
-full.reg<- full.asd(test.data,train.data)
