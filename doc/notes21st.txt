@@ -1,0 +1,68 @@
+geolocation uncertainty
+horizontal uncertainty greater than vertical
+uncertainty specifications pretty "optimistic"
+vegetation affects
+processing > larger and difficult to quantify
+distance from the base station is the most important factor
+over 20km raise a lot. below, 0.02m uncertainty
+LMS processing. 30% overlapping. See how data overlap
+> system in very good allignment >> y = 0 +- 0.05 CI
+
+vertical error ( calculated usign ground truth gps) > N(0, 0.05 ish) (95% in +-0.1) 0.02 to 0.11 st.dev
+horizontal accuracy ~ N(0, )
+ > beam divergence laser pulse
+ > enegry pulse distribution Normal
+ > wide beam (80cmish) > shift of 40cm in giving height of the edge to the center
+ > gps error and other stuff is less influential > beam divergence the real big guy
+ 
+mean error 0.04m to 0.06
+
+uncertainty rebuilt using Goulden et al 2010, algoritmh uses subsystem LiDAR error >> 
+
+3by3 moving average
+lot of noise in the lidar points: running a 3by3 moving average >> you get rid of part of the noise by smoothing
+generlly underestimating tree height using lidar (negative itercept)
+
+> you get the return a little bit down, uncertainty around 0.4m
+> using the different paths > a different chm, and see what is the uncertainty given they are calculating the chm from different datasets
+
+around 1 to 2 m of sd
+edges of the tree have a lot of variation and uncertainty
+look at the overlapping point clouds to get uncertainty once you are using it to estimate the ITCs
+
+at the most interpolating 3 meters when creating the chm
+heavy canopy, we are interpolating up to 25m > because of the less frequency of ground points
+
+processing unceratinty depending on day qulity, +- 0.3
+misclassification : top of the montains
+misclassification of vegetation points
+classification 90%
+simulated errors is giving just the sensor error, not the interaction with the point cloud
+
+dat portal and documents >> 2 different "sub-portals"
+chm rasters not a great way to look into things. I guess for what we are interested, point cloud is quite better to work with
+look at how fast a tree grow, how much is getting from the error: you can see early changes 
+> uncertainty analisys of lidar for height interpretation: get how big is a crown with respect of how much of uncertainty you got there
+
+
+
+hsp: wavelength with different uncertainty
+monocromator scanner (and ghosts)
+bleeding of white (lots of reflectance and blurring) on the black tarp goes away 
+uncertainty 5% per radiance
+
+NIS1 and NIS2 have different bands: you gotta standardize them 
+get rid of tfirst 10 and last 10
+
+
+brdf corrections >> they will be applied but still not there. You can use SNV to standardize the shadows
+ORNL 2016 >> may be another nice source of data
+Moisture stress index,
+NDII, 
+NDWI
+PRI, 
+Normalized difference lignin difference
+NDNI
+
+landcover impact on indexes (is it worthy use them directly?)
+

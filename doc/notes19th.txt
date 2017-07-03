@@ -1,0 +1,39 @@
+###HDF5view
+especially useful for metadata
+* littel red a tlls you the attributes that are there
+* youc can programmatically pull out metadata info into your environment
+
+in reflectance data there is also the meteorological conditions on th esite >> can be used to use for unceratinty
+
+hey, the real band is 5, but it is actually taking some info from a  gaussian. Than means that even if the band is 5nm, it is getting some of the 6th nm 
+
+
+clipIndex = neon.calc_clip_index(clipExt,sercRefl_md['ext_dict'])
+
+serc_b56_subset = subset_clean_band(sercRefl,sercRefl_md,clipIndex,55)
+refl_band = serc_b56_subset
+
+w = copy.copy(wavelengths.value)
+w[((w >= 1340) & (w <= 1445)) | ((w >= 1790) & (w <= 1955))]=np.nan
+interact(spectraPlot, pixel_x = (0,refl.shape[1]-1,1),pixel_y=(0,refl.shape[0]-1,1))
+
+gaussian weighting scheme to get the average: cover 4 or 5 bands to average with but still under construction
+
+
+now think about what branch you are using, which the repo on cloud is
+check in "branch" in the git hub page on their repo
+
+git branch -a
+	it is basically just telling me 
+	
+	git pull upstream master
+	git push origin master 
+		> not gonna move everything. Just the things that changed since last time I checked in
+	git log 
+		> you can get what happened every time. Important to have a nice 
+	q
+		> get out of the log
+	
+now if you go on the site, you have the same thing
+
+`pro git` completely free
