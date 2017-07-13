@@ -21,12 +21,11 @@ source(paste(getwd(), '/src/src.R', sep=""))
 # arguments
 #parameters (to put in the arguments form to automize)
 loops <- 300
-NeonSite <- "TALL"
+NeonSite <- "OSBS"
 setwd('~/Documents/Projects/TraitsOnHeaven/')
 out.dir = paste(getwd(), NeonSite,"outputs/", sep="/")
 in.dir = paste(getwd(),NeonSite,  "inputs/", sep="/")
 names <- c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")
-setwd(path)
 #debugging
 laps =rounds=1
 path = paste(getwd(), NeonSite, sep="/")
@@ -60,7 +59,6 @@ main <- function(loops=100, out.dir = paste(getwd(), "/outputs/", sep=""),in.dir
     setwd(path) #was in.dir
     DiscardAndRerun(names,rounds, loops, nCrowns)
   }
-  
   #return best 100 of last filtering
-  
+  storeFinalSet(in.dir, out.dir, rounds = 10, names, nentries = 40)
 }
