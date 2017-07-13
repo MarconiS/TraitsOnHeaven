@@ -1,25 +1,27 @@
 PLSandLasso <- function( rounds = 10, loops = 400, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
                          out.dir = paste(getwd(), "/outputs/", sep=""), in.dir = paste(getwd(), "/inputs/", sep="")){
-  cr.Traits <- read.csv(paste(in.dir, "/sample.csv",sep=""))
+  cr.Traits <- read.csv(paste(in.dir, "Spectra/trainCrownTraits.csv",sep=""), stringsAsFactors = F)
   nCrowns <- dim(cr.Traits)[1]
   
-  for (j in 5){
+  for (j in 1:6) {
     R = matrix(NA, ncol=4, nrow=loops)
     
-    for(laps in 1:loops){
+    for(laps in 1:loops) {
       aug.spectra <- imp.spectra(paste('Bootstrap_',rounds,'/onePix1Crown_',names[j], laps, '.csv', sep = ''), in.dir)
       aug.spectra$X=aug.spectra$X.1 = aug.spectra$X.2 = aug.spectra$X.3 = aug.spectra$X.4 = aug.spectra$X.5 = 
         aug.spectra$X.6 = aug.spectra$X.7 = aug.spectra$X.8 = aug.spectra$X.9 = aug.spectra$X.10 = NULL
       
       aug.spectra <- merge(cr.Traits, aug.spectra, by.x = "pixel_crownID", by.y = "pixel_crownID")
-      X <- aug.spectra[,19:length(aug.spectra[1,])]
+      X<- aug.spectra[grepl("band", names(aug.spectra))]
+      
+      
       X=X[, colSums(is.na(X)) == 0]
       # filter <- apply(X, 2, max)
       # if(any(filter > 1)){
       #   X <- X[-which(filter > 1)]
       # }
       # X=X[, colSums(is.na(X)) == 0]
-      Y <- aug.spectra[,9:14]
+      Y <- aug.spectra[,names(aug.spectra) %in% names]
       X_corr = cor(as.matrix(X), Y)
       aug.X <- data.frame(aug.spectra$name, Y, X)
       # Subset data into cal/val by site
@@ -29,21 +31,21 @@ PLSandLasso <- function( rounds = 10, loops = 400, names = c("LMA_g.m2", "d13C",
       
       print(paste(laps, names(Y[j])))
       # Run calibration PLSR analysis to select optimal number of components
-      pls.mod.train <- pls.cal(train.data, 25, j, norm = F)
+      pls.mod.train <- pls.cal(train.data, 25,nm = names, j, norm = F)
       #calculate number of components given min test PRESS or RMSEP
-      optim.ncomps <- opt.comps(pls.mod.train, Y,  j)
-      pred.val.data <- predict.pls(pls.mod.train, test.data, optim.ncomps,j, norm = F)
-      out.data <- res.out(pred.val.data, train.data, test.data, j)
+      optim.ncomps <- opt.comps(pls.mod.train, Y, j)
+      pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
+      out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j)
       
       #-- run lasso -------------------------------------------------------------------------------------#
-      lasso.reg <- lasso.asd(test.data,train.data, j, norm = F)
+      lasso.reg <- lasso.asd(test.data,train.data, j, nm = names,  norm = F)
       print.coeffs(pls.mod.train,optim.ncomps, rounds, lasso.reg, Y, j, out.dir) 
       
       
-      #----run GP ------#
-      library("GPfit")
-      GPmodel = GP_fit(train.data[,8:368], train.data[,j+1] )
-      
+      # #----run GP ------#
+      # library("GPfit")
+      # GPmodel = GP_fit(train.data[,8:368], train.data[,j+1] )
+      # 
       setwd(out.dir)
       
       #I apology for the lack of organization in the plotting scheme
@@ -72,7 +74,7 @@ normalize<-function(){
   # Find bad bands
   all_Bands=as.character(allBand$BandName)
   bad_Bands=as.character(allBand[which(allBand$noise==1),"BandName"])
-  
+  #allData[,-c(1,2)] <- allData[,-c(1,2)] /10000
   # Set bad bands to zero
   ndvi <- (allData$band_90- allData$band_58)/(allData$band_58 + allData$band_90)
   allData[which(ndvi < 0.7),]=NA
@@ -80,9 +82,10 @@ normalize<-function(){
   allData[,bad_Bands]=NA
   
   #remove any reflectance bigger than 1
-  Cpx <- allData[,1]
+  pixel_crownID <- allData[,2]
+  allData <- allData[,-c(1,2)]
   allData[allData>1]=NA
-  allData[,1] = Cpx
+  allData <- cbind(pixel_crownID,allData)
   
   # Find unique crowns (only for plotting purposes)
   unqCrown=unique(allData$pixel_crownID)
@@ -103,10 +106,9 @@ normalize<-function(){
 
 
 
-rPix <-function( rounds, loops, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                 path = ("/Users/sergiomarconi/OneDrive/Projects/OSBS")){
+rPix <-function(rounds, loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
+                path = ("/Users/sergiomarconi/Projects/OSBS")){
   
-  setwd(path)
   out.dir = paste(getwd(), "/outputs/", sep="")
   in.dir = paste(getwd(), "/inputs/", sep="")
   # Read data
@@ -127,21 +129,20 @@ rPix <-function( rounds, loops, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_p
     #allData=allData[, colSums(is.na(allData)) == 0]
     
     # Find unique crowns (only for plotting purposes)
-    unqCrown=unique(allData$pixel_crownID)
     bootDat <- allData[1:length(unqCrown), ]
     bootPix <- allData[1:length(unqCrown), 1:2]
     bootDat[] <- NA
     bootPix[] <- NA
-    
     for (laps in 1:loops){
       tk = 1
       for(i in unqCrown){
-        set.seed(laps)
+        set.seed(laps + (rounds -1) * loops) # todo: change laps * odd number?
         bootDat[tk,] <- allData[sample(which(allData$pixel_crownID==i), 1),]
-        set.seed(laps)
+        set.seed(laps + (rounds -1) * loops)
         bootPix[tk,] <- c(i,1 + sample(which(allData$pixel_crownID==i), 1))
         tk = tk +1
       }
+      names(bootPix) <- c("pixel_crownID", "ChosenPix")
       write.csv(bootDat, paste('inputs/Bootstrap_', rounds,'/onePix1Crown_',names[j], laps, '.csv', sep = ''))
       write.csv(bootPix, paste('inputs/Bootstrap_',rounds,'/onePix1Position_',names[j], laps, '.csv', sep = ''))
     }
@@ -150,37 +151,45 @@ rPix <-function( rounds, loops, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_p
 
 
 
-DiscardAndRerun <- function (names, rounds, nsim, nCrowns){
+DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
   library(readr)
   for (j in 1:6){
     pls_coef <- read_csv(paste(out.dir,'pls_coeffs_',rounds,names[j],'.csv',sep=""),col_names = FALSE)
-    lasso_coef <- read_csv(paste(out.dir,'las_coeffs_',rounds,names[j],'.csv',sep=""), col_names = FALSE)
+    if(lass.included = T){
+      lasso_coef <- read_csv(paste(out.dir,'las_coeffs_',rounds,names[j],'.csv',sep=""), col_names = FALSE)
+    }
     # pls_coef <- read.csv(paste(out.dir,'pls_coeffs_',names[j],'.csv',sep=""),header = FALSE)
     # lasso_coef <- read.csv(paste(out.dir,'las_coeffs_',names[j],'.csv',sep=""), header = FALSE)
-    
+    nEntries = 100
     press <- data.frame(cbind(seq(1,nsim),pls_coef$X1))
-    r2.las <-data.frame(cbind(seq(1,nsim),lasso_coef$X1))
+    if(lass.included = T){
+      r2.las <-data.frame(cbind(seq(1,nsim),lasso_coef$X1))
+      p.ls <- r2.las[order(r2.las$X2),]
+      p.ls <- p.ls[1:100,1]
+      nEntries = 200
+    }
     p <- press[order(-press$X2),]
-    p.ls <- r2.las[order(r2.las$X2),]
     head(p)
     p <- p[1:100,1]
-    p.ls <- p.ls[1:100,1]
     
-    pixels <- data.frame(matrix(NA, ncol=nCrowns, nrow = 200))
+    pixels <- data.frame(matrix(NA, ncol=nCrowns, nrow = nEntries))
     tk = 0
     for(k in p){
       tk = tk + 1
       #import ith permutation associated with the horrible correlation
       tmp <- imp.spectra(paste('Bootstrap_',rounds,'/onePix1Position_',names[j], k, '.csv', sep = ''), in.dir)
-      pixels[tk,] <- tmp[,3]
+      pixels[tk,] <- tmp$ChosenPix 
     }
-    for(k in p.ls){
-      tk = tk + 1
-      #import ith permutation associated with the horrible correlation
-      tmp <- imp.spectra(paste('Bootstrap_1/onePix1Position_', names[j], k, '.csv', sep = ''), in.dir)
-      pixels[tk,] <- tmp[,3]
+    if(lass.included = T){
+      for(k in p.ls){
+        tk = tk + 1
+        #import ith permutation associated with the horrible correlation
+        #check why 1
+        tmp <- imp.spectra(paste('Bootstrap_',rounds,'/onePix1Position_',names[j], k, '.csv', sep = ''), in.dir)
+        #tmp <- imp.spectra(paste('Bootstrap_1/onePix1Position_', names[j], k, '.csv', sep = ''), in.dir)
+        pixels[tk,] <- tmp$ChosenPix #it is called band_1 just because I didn't change the name when created 1pix1crown, but is the actual pixel  chosen from the ith crown
+      }
     }
-    
     discarded = kept = NULL
     for(k in 1:nCrowns){
       if(dim(table(pixels[,k])) >4){
@@ -188,7 +197,7 @@ DiscardAndRerun <- function (names, rounds, nsim, nCrowns){
         #order frequency of bad pixels. Cut off pixels summing up to 85%?
         rank.p <- rank.p[order(-rank.p$Freq),]
         tk = qtl = 0
-        while(qtl < 74){
+        while(qtl < 40){
           tk <- tk +1
           qtl <- rank.p$Freq[tk] + qtl
         }

@@ -87,9 +87,9 @@ cut.set<-function(aug.X,out.dir, c.id){
 
 
 # Calibration PLS model ---------------------------------------------------
-pls.cal <- function(train.data, comps, j,  norm = F){
-  spectra <- as.matrix(train.data[,8:length(train.data[1,])])
-  traits <- as.matrix(train.data[,2:7])
+pls.cal <- function(train.data, comps, j, nm, norm = F){
+  spectra <- as.matrix(train.data[grepl("band", names(train.data))])
+  traits <- as.matrix(train.data[,names(train.data) %in% nm])
   pls.summ <- list()
   spectra_log_dif_snv <- spectra
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
@@ -99,8 +99,8 @@ pls.cal <- function(train.data, comps, j,  norm = F){
   leaf.trait <- traits[,j]
   #get only 80% training, 20% to figure optimum components out?    
   train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
-  tmp.pls = plsr(Y ~ X,scale=F, ncomp=comps,validation="CV", trace=TRUE, method = "oscorespls", data = train.PLS) 
-  pls.summ[[names(train.data[,2:7])[j]]] <- tmp.pls 
+  tmp.pls = plsr(Y ~ X,scale=F, ncomp=comps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
+  pls.summ[[nm[j]]] <- tmp.pls 
   
   return(pls.summ)
 }
@@ -141,9 +141,9 @@ Q2 <- function(test.PLS, tmp.pls)
   return(RMSECV)
 }
 
-predict.pls <- function(pls.mod.train, test.data, optim.ncomps,j, norm = F){
-  spectra <- as.matrix(test.data[,8:length(test.data[1,])])
-  traits <- as.matrix(test.data[,2:7])
+predict.pls <- function(pls.mod.train, test.data, optim.ncomps,j, nm, norm = F){
+  spectra <- as.matrix(test.data[grepl("band", names(test.data))])
+  traits <- as.matrix(test.data[,names(test.data) %in% nm])
   pred <- list()
   spectra_log_dif_snv <- spectra
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
@@ -151,18 +151,18 @@ predict.pls <- function(pls.mod.train, test.data, optim.ncomps,j, norm = F){
   }    
     leaf.trait <- traits[,j]
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
-    pred[[names(test.data[,2:7])[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
-       names(test.data[,2:7])[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response"))
+    pred[[nm[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
+       nm[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response"))
   return(pred)
 }
 
-res.out <- function(pred.val.data, train.data, test.data, j)
+res.out <- function(pred.val.data, train.data, test.data, j, nm)
 {
   out <- list()
-  traits <- as.matrix(test.data[,2:7])
+  traits <- as.matrix(test.data[,names(test.data) %in% nm])
   # Build output dataset
   # PLSR Summary statistics
-  pred.data <- as.vector(eval(parse(text = paste('pred.val.data$',names(test.data[,2:7])[j],sep=""))))
+  pred.data <- as.vector(eval(parse(text = paste('pred.val.data$',nm[j],sep=""))))
   res <- traits[,j]- pred.data
   MSE.test <- mean(res^2)
   RMSE.test <- sqrt(MSE.test)
@@ -178,17 +178,17 @@ res.out <- function(pred.val.data, train.data, test.data, j)
 
 # LASSO SELECTION ----------------------------------------------
 
-lasso.asd <- function(test.data,train.data, j, norm = F)
+lasso.asd <- function(test.data,train.data, j, nm, norm = F)
 {
   grid =10^ seq (10,-2, length =100)
-  traits <- train.data[,2:7]
-  leaf.spec <- train.data[,8:length(train.data[1,])]
+  traits <- train.data[,names(train.data) %in% nm]
+  leaf.spec <- train.data[grepl("band", names(train.data))]
   #leaf.spec <-t(diff(t(log(leaf.spec)),differences=1, lag=3))
   if(norm){    
     leaf.spec <- standardNormalVariate(X = t(diff(t(log(leaf.spec)),differences=1, lag=3)))
   }
-  test.traits <- test.data[,2:7]
-  test.spec <- test.data[,8:length(test.data[1,])]
+  test.traits <- test.data[,names(test.data) %in% nm]
+  test.spec <- test.data[grepl("band", names(test.data))]
   #test.spec <-t(diff(t(log(test.spec)),differences=1, lag=3))
   if(norm){    
     test.spec <- standardNormalVariate(X = t(diff(t(log(test.spec)),differences=1, lag=3)))
@@ -206,7 +206,7 @@ lasso.asd <- function(test.data,train.data, j, norm = F)
   lasso.r2 <- 1-length(test.traits[,1]) * lasso.mse / sum((test.traits[,j]-mean(test.traits[,j]))^2)
   lasso.coef=predict(lasso.mod ,type ="coefficients" ,s=bestlam ) #[1:41,]
   bands = names(leaf.spec)[lasso.coef@i]
-  out[[names(train.data[,2:7])[j]]] <- list(mod= lasso.mod, bands = bands, coeff = lasso.coef, mse = lasso.mse, r2=lasso.r2, lambda = bestlam, tr.R2 = tr.R2, tr.MSE = tr.MSE)
+  out[[nm[j]]] <- list(mod= lasso.mod, bands = bands, coeff = lasso.coef, mse = lasso.mse, r2=lasso.r2, lambda = bestlam, tr.R2 = tr.R2, tr.MSE = tr.MSE)
   
   return(out)
 }
