@@ -155,14 +155,14 @@ DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
   library(readr)
   for (j in 1:6){
     pls_coef <- read_csv(paste(out.dir,'pls_coeffs_',rounds,names[j],'.csv',sep=""),col_names = FALSE)
-    if(lass.included = T){
+    if(lass.included == T){
       lasso_coef <- read_csv(paste(out.dir,'las_coeffs_',rounds,names[j],'.csv',sep=""), col_names = FALSE)
     }
     # pls_coef <- read.csv(paste(out.dir,'pls_coeffs_',names[j],'.csv',sep=""),header = FALSE)
     # lasso_coef <- read.csv(paste(out.dir,'las_coeffs_',names[j],'.csv',sep=""), header = FALSE)
     nEntries = 100
     press <- data.frame(cbind(seq(1,nsim),pls_coef$X1))
-    if(lass.included = T){
+    if(lass.included == T){
       r2.las <-data.frame(cbind(seq(1,nsim),lasso_coef$X1))
       p.ls <- r2.las[order(r2.las$X2),]
       p.ls <- p.ls[1:100,1]
@@ -180,7 +180,7 @@ DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
       tmp <- imp.spectra(paste('Bootstrap_',rounds,'/onePix1Position_',names[j], k, '.csv', sep = ''), in.dir)
       pixels[tk,] <- tmp$ChosenPix 
     }
-    if(lass.included = T){
+    if(lass.included == T){
       for(k in p.ls){
         tk = tk + 1
         #import ith permutation associated with the horrible correlation
