@@ -53,7 +53,7 @@ cut.set<-function(aug.X,out.dir, c.id){
   species <- unique(aug.X$aug.spectra.name)
   
   # Sample proportion for cal data
-  prop <- 0.7
+  prop <- 0.8
   train.data <- 0
   test.data <- 0
   j <- 1
@@ -87,13 +87,13 @@ cut.set<-function(aug.X,out.dir, c.id){
 
 
 # Calibration PLS model ---------------------------------------------------
-pls.cal <- function(train.data, comps, j, nm, norm = F){
+pls.cal <- function(train.data, comps, j, nm, normalz = F){
   spectra <- as.matrix(train.data[grepl("band", names(train.data))])
   traits <- as.matrix(train.data[,names(train.data) %in% nm])
   pls.summ <- list()
   spectra_log_dif_snv <- spectra
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
-  if(norm){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))
+  if(normalz){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))
   }
   
   leaf.trait <- traits[,j]
@@ -105,6 +105,26 @@ pls.cal <- function(train.data, comps, j, nm, norm = F){
   return(pls.summ)
 }
 
+pls.calImg <- function(train.data, comps, j, nm, normalz = F){
+  spectra <- as.matrix(train.data[grepl("band", names(train.data))])
+  spectra<- spectra[,-c(seq(1,8))]
+  #train.data <- train.data[ , apply(train.data, 2, function(x) !any(is.na(x)))]
+  traits <- as.matrix(train.data[,1])
+  pls.summ <- list()
+  spectra_log_dif_snv <- spectra
+  #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
+  if(normalz){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))
+  }
+  
+  #leaf.trait <- traits[,j]
+  leaf.trait <- traits
+  #get only 80% training, 20% to figure optimum components out?    
+  train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
+  tmp.pls = plsr(Y ~ X,scale=F, ncomp=comps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
+  pls.summ[[nm[j]]] <- tmp.pls 
+  
+  return(pls.summ)
+}
 
 #Calibration GP model
 gp.cal <- function(train.data, comps, j,  norm = F){
@@ -124,6 +144,13 @@ gp.cal <- function(train.data, comps, j,  norm = F){
 opt.comps <- function(pls.mod.train, Y, j){
   ncomps <- NA
   tmp.pls = eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep="")))
+  ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
+  return(ncomps)
+}
+#--------------------------------------------------------------------------------------------------#
+opt.compsImg <- function(pls.mod.train, Y){
+  ncomps <- NA
+  tmp.pls = eval(parse(text = paste('pls.mod.train$',names(Y),sep="")))
   ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
   return(ncomps)
 }

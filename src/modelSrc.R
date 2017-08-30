@@ -3,7 +3,7 @@ PLSandLasso <- function( rounds = 10, loops = 400, names = c("LMA_g.m2", "d13C",
   cr.Traits <- read.csv(paste(in.dir, "Spectra/trainCrownTraits.csv",sep=""), stringsAsFactors = F)
   nCrowns <- dim(cr.Traits)[1]
   
-  for (j in 1:6) {
+  for (j in 1:4) {
     R = matrix(NA, ncol=4, nrow=loops)
     
     for(laps in 1:loops) {
@@ -31,7 +31,7 @@ PLSandLasso <- function( rounds = 10, loops = 400, names = c("LMA_g.m2", "d13C",
       
       print(paste(laps, names(Y[j])))
       # Run calibration PLSR analysis to select optimal number of components
-      pls.mod.train <- pls.cal(train.data, 25,nm = names, j, norm = F)
+      pls.mod.train <- pls.cal(train.data, 15,nm = names, j, norm = F)
       #calculate number of components given min test PRESS or RMSEP
       optim.ncomps <- opt.comps(pls.mod.train, Y, j)
       pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
@@ -57,11 +57,28 @@ PLSandLasso <- function( rounds = 10, loops = 400, names = c("LMA_g.m2", "d13C",
     assign(paste("R.", names(Y[j]),  sep = ""), R)
   }
   
-  R2est <- as.data.frame(cbind(R.LMA_g.m2[,1:2],R.d13C[,1:2], R.d15N[,1:2], R.C_pct[,1:2], R.N_pct[,1:2],R.P_pct[,1:2]))
-  colnames(R2est) <- c("LMA Lasso", "LMA PLS","δ13C Lasso","δ13C PLS","δ15N Lasso", "δ15N PLS","C Lasso", "C PLS","N Lasso","N PLS", "P Lasso", ".P_pct")
-  
-  MSEest <- as.data.frame(cbind(R.LMA_g.m2[,3:4], R.d13C[,3:4], R.d15N[,3:4],  R.C_pct[,3:4], R.N_pct[,3:4],R.P_pct[,3:4]))
-  colnames(MSEest) <- c("LMA_g.m2", ".LMA_g.m2","d13C",".d13C","d15N", ".d15N","C_pct", ".C_pct","N_pct",".N_pct", "P_pct", ".P_pct")
+  R2est <- as.data.frame(cbind(eval(parse(text = paste("R.", names(Y[1]),  sep = "")))[,1:2],
+                               eval(parse(text = paste("R.", names(Y[2]),  sep = "")))[,1:2], 
+                               eval(parse(text = paste("R.", names(Y[3]),  sep = "")))[,1:2], 
+                               eval(parse(text = paste("R.", names(Y[4]),  sep = "")))[,1:2])) 
+                               #eval(parse(text = paste("R.", names(Y[5]),  sep = "")))[,1:2],
+                               #eval(parse(text = paste("R.", names(Y[6]),  sep = "")))[,1:2]))
+  #colnames(R2est) <- c("LMA Lasso", "LMA PLS","δ13C Lasso","δ13C PLS","δ15N Lasso", "δ15N PLS","C Lasso", "C PLS","N Lasso","N PLS", "P Lasso", ".P_pct")
+  r2.colnames <- rep(NA, 4 * 2)
+  index <- 1
+  for(n in names){
+    r2.colnames[c(index, index+1)] <- c(paste(n,'pls', sep ="."), paste(n,'lasso', sep ="."))
+    index <- index + 2
+  }
+  colnames(R2est) <- r2.colnames
+  MSEest <- as.data.frame(cbind(eval(parse(text = paste("R.", names(Y[1]),  sep = "")))[,1:2],
+                      eval(parse(text = paste("R.", names(Y[2]),  sep = "")))[,3:4], 
+                      eval(parse(text = paste("R.", names(Y[3]),  sep = "")))[,3:4], 
+                      eval(parse(text = paste("R.", names(Y[4]),  sep = "")))[,3:4])) 
+  #eval(parse(text = paste("R.", names(Y[5]),  sep = "")))[,3:4],
+  #eval(parse(text = paste("R.", names(Y[6]),  sep = "")))[,3:4]))
+  #MSEest <- as.data.frame(cbind(R.LMA_g.m2[,3:4], R.d13C[,3:4], R.d15N[,3:4],  R.C_pct[,3:4], R.N_pct[,3:4],R.P_pct[,3:4]))
+  colnames(MSEest) <- r2.colnames
   write.csv(R2est, file = paste(names[j],'Boost', rounds,'R2.csv',sep="_"))
   write.csv(MSEest, file = paste(names[j],'Boost', rounds,'MSE.csv',sep="_"))
 }
@@ -77,6 +94,7 @@ normalize<-function(){
   #allData[,-c(1,2)] <- allData[,-c(1,2)] /10000
   # Set bad bands to zero
   ndvi <- (allData$band_90- allData$band_58)/(allData$band_58 + allData$band_90)
+  
   allData[which(ndvi < 0.7),]=NA
   allData <- allData[complete.cases(allData), ]
   allData[,bad_Bands]=NA
@@ -102,6 +120,48 @@ normalize<-function(){
   
   # Write vector normalized spectra to CSV
   write.csv(normDF, "./inputs/Spectra/CrownPix_norm.csv",row.names=FALSE)
+}
+
+#allData <- as.data.frame(hsp)
+
+normalizeImg<-function(hsp){
+  allData = hsp
+  # Read data
+  allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
+  # Find bad bands
+  all_Bands=as.character(allBand$BandName)
+  bad_Bands=as.character(allBand[which(allBand$noise==1),"BandName"])
+  #allData[,-c(1,2)] <- allData[,-c(1,2)] /10000
+  # Set bad bands to zero
+  ndvi <- (allData$band_90- allData$band_58)/(allData$band_58 + allData$band_90)
+  mask <- which(ndvi < 0.7)
+  allData[which(ndvi < 0.7),]=NA
+  #allData <- allData[complete.cases(allData), ]
+  allData[,colnames(allData) %in% bad_Bands]=NA
+  
+  #remove any reflectance bigger than 1
+  #pixel_crownID <- allData[,2]
+  #allData <- allData[,-c(1,2)]
+  allData[allData>1]=NA
+  #allData <- cbind(pixel_crownID,allData)
+  
+  # Find unique crowns (only for plotting purposes)
+  #unqCrown=unique(allData$pixel_crownID)
+  # Extract spectra into matrix
+  #specMat=as.matrix(allData[,all_Bands])
+  specMat = allData[,colnames(allData) %in% all_Bands]
+  
+  # Vector normalize spectra
+  normMat=sqrt(apply(specMat^2,FUN=sum,MAR=1, na.rm=TRUE))
+  normMat=matrix(data=rep(normMat,ncol(specMat)),ncol=ncol(specMat))
+  normMat=specMat/normMat
+  
+  # Write vector normalized spectra back into dataframe
+  #normDF=allData
+  #normDF[,all_Bands]=normMat
+  normDF = as.data.frame(normMat)
+  # Write vector normalized spectra to CSV
+  return(normDF)
 }
 
 
@@ -153,14 +213,14 @@ rPix <-function(rounds, loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_
 
 DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
   library(readr)
-  for (j in 1:6){
+  for (j in 1:4){
     pls_coef <- read_csv(paste(out.dir,'pls_coeffs_',rounds,names[j],'.csv',sep=""),col_names = FALSE)
     if(lass.included == T){
       lasso_coef <- read_csv(paste(out.dir,'las_coeffs_',rounds,names[j],'.csv',sep=""), col_names = FALSE)
     }
     # pls_coef <- read.csv(paste(out.dir,'pls_coeffs_',names[j],'.csv',sep=""),header = FALSE)
     # lasso_coef <- read.csv(paste(out.dir,'las_coeffs_',names[j],'.csv',sep=""), header = FALSE)
-    nEntries = 100
+    nEntries = 10
     press <- data.frame(cbind(seq(1,nsim),pls_coef$X1))
     if(lass.included == T){
       r2.las <-data.frame(cbind(seq(1,nsim),lasso_coef$X1))
@@ -170,7 +230,7 @@ DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
     }
     p <- press[order(-press$X2),]
     head(p)
-    p <- p[1:100,1]
+    p <- p[1:nEntries,1]
     
     pixels <- data.frame(matrix(NA, ncol=nCrowns, nrow = nEntries))
     tk = 0
@@ -197,9 +257,9 @@ DiscardAndRerun <- function(names, rounds, nsim, nCrowns, lass.included = F){
         #order frequency of bad pixels. Cut off pixels summing up to 85%?
         rank.p <- rank.p[order(-rank.p$Freq),]
         tk = qtl = 0
-        while(qtl < 40){
+        while(qtl < 0.40){
           tk <- tk +1
-          qtl <- rank.p$Freq[tk] + qtl
+          qtl <- rank.p$Freq[tk]/sum(rank.p$Freq) + qtl
         }
         discarded <- c(discarded, as.character(rank.p$Var1[1:tk-1]))
         kept <- c(kept, as.character(rank.p$Var1[tk:dim(rank.p)[1]]))

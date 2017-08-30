@@ -1,6 +1,6 @@
 
-loadITC <- function(path, proj){
-  path.vect <- paste(path, "Geofiles/vector/", sep="")
+loadITC <- function(in.dir, proj){
+  path.vect <- paste(in.dir, "Geofiles/vector/", sep="")
   tree.tg <- readOGR(path.vect, "Final Tagged Trees", stringsAsFactors=F)
   tree.untg <- readOGR(path.vect, "Final Untagged Trees", stringsAsFactors=F)
   plot.cnt <- read.centroids("OSBS_diversity_plot_centroids")
@@ -10,12 +10,10 @@ loadITC <- function(path, proj){
 }
 
 loadIMG <- function(path, proj, img.lb = 1){
-  path.raster <- paste(path, "Geofiles/raster/", sep="")
-  chm.sample <- raster(paste(path.raster, "chm/", img.lb, "_chm.tif", sep = ""))
+  path.raster <- paste(path, "Geofiles/", sep="")
+  #chm.sample <- raster(paste(path.raster, "LiDAR/", 'plot_', img.lb, "_chm.tif", sep = ""))
   hs.sample <- brick(paste(path.raster, "hs_fullBands/", img.lb, "_nm350_2512.tif", sep = ""))
-  #you want to include RGB too, later
-  rgb.sample <- raster(paste(path.raster, "camera/", img.lb, "_camera.tif", sep = ""))
-  return(list(cmh = chm.sample, hsp = hs.sample, rgb = rgb.sample))
+  return(list(hsp = hs.sample))
 }
 
 spectra.profile <-function(f, xi, yi){
@@ -138,7 +136,6 @@ get.extent <- function(f, dims){
 }
 
 read.centroids <- function(file){
-  library(rgdal)
   plot.centr <- readOGR("./inputs/Geofiles/vector", file, stringsAsFactors = FALSE)
   return(plot.centr)
 }

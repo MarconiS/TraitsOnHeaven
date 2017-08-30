@@ -25,7 +25,9 @@ NeonSite <- "OSBS"
 setwd('~/Documents/Projects/TraitsOnHeaven/')
 out.dir = paste(getwd(), NeonSite,"outputs/", sep="/")
 in.dir = paste(getwd(),NeonSite,  "inputs/", sep="/")
-names <- c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")
+names <- c('abs_2yr',	'abs_5yr',	'rel_2yr',	'rel_5yr')
+
+#names <- c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")
 #debugging
 laps =rounds=1
 path = paste(getwd(), NeonSite, sep="/")
@@ -37,7 +39,7 @@ main <- function(loops=100, out.dir = paste(getwd(), "/outputs/", sep=""),in.dir
   cid <- eval(parse(text = paste("CrownIDS", NeonSite, sep="$")))
   cid <- cid[!is.na(cid)]
   set.seed(14)
-  cid.train <- sample(cid, length(cid)*0.85)
+  cid.train <- sample(cid, length(cid)*1)
   cid.test <- cid[!(cid %in% cid.train)]
   write.csv(cid.train, paste(path,'inputs/trainID.csv', sep="/"))
   write.csv(cid.test, paste(path,'inputs/testID.csv', sep="/"))
@@ -52,7 +54,7 @@ main <- function(loops=100, out.dir = paste(getwd(), "/outputs/", sep=""),in.dir
   
   setwd(path)
   normalize()
-  for(rounds in 1:10){
+  for(rounds in 1:3){
     setwd(path)
     rPix(rounds, loops, unqCrown = cid.train, names, path=path)
     PLSandLasso(rounds,loops, names)
