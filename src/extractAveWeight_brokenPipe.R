@@ -16,6 +16,16 @@ source(paste(getwd(), '/src/functionsImage.R', sep=""))
 source(paste(getwd(), '/src/src.R', sep=""))
 source(paste(getwd(), '/src/modelSrc.R', sep=""))
 
+scalar1 <- function(x) {x / sqrt(sum(x^2))}
+
+decimalplaces <- function(x) {
+  if ((x %% 1) != 0) {
+    nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+  } else {
+    return(0)
+  }
+}
+
 
 NeonSite <- "OSBS"
 setwd('~/Documents/Projects/TraitsOnHeaven/')
@@ -80,12 +90,20 @@ for (i in listPlot[['V1']]){#forToday[1]) {
     }
     mask <- which(mod.r2 %in% tail(sort(mod.r2), 20) & mod.r2 >0.0)
     
-    #if(j != "name"){weights[[j]] <- mod.r2[mask] /sum(mod.r2[mask])}
-    weights[[j]] <- mod.r2[mask] /sum(mod.r2[mask])
+    if(j != "name"){weights[[j]] <- mod.r2[mask] /sum(mod.r2[mask])
+    }else{
+      #norm.R2 <- scalar1(mod.r2[mask])
+      norm.R2 <- mod.r2[mask]/sum(mod.r2[mask])
+      multiplier <- 10^3 #decimalplaces(min(norm.R2))
+      weights[[j]] <- round(norm.R2 * multiplier)
+    }
+    
+    tkn <- 0 
     for(k in mask){
+      tkn <- tkn + 1
       #read the ith model
       pls.mod.train <- mod.out[[k]]
-      optim.ncomps <- mod.comps[k]
+      optim.ncomps <- 6 #mod.comps[k]
       #standardize
       #pls.mod.train <- pls.calImg(train.data, 25,nm = names, jj, norm = F)
       
@@ -94,20 +112,28 @@ for (i in listPlot[['V1']]){#forToday[1]) {
       if(names != "name"){
         dat <- data.frame(X=I(hsp)) 
         md.plot <- predict(eval(parse(text = paste('pls.mod.train$',j,sep=""))), newdata = dat, ncomp=optim.ncomps, type='response')
+        if(!exists("md.all")){
+          md.all <- as.vector(md.plot)
+        }else{
+          md.all <- cbind(md.all, md.plot)
+        }
       }else{
         dat <- data.frame(X=I(hsp)) 
         #md.plot <- predict(eval(parse(text = paste('pls.mod.train$',j,sep=""))), newdata = hsp, ncomp=optim.ncomps, type='class')
         prova <- as.vector(predict(eval(parse(text = paste('pls.mod.train$', j,sep=""))), 
                                    newdata = na.omit(hsp), ncomp=optim.ncomps, type="class"))
-        md.plot <- as.numeric(rep(NA, x.size[1]*x.size[2]))
-        md.plot[goodPix.pos] <- as.numeric(prova)
+        for(donCare in 1: weights[[j]][tkn]){
+          md.plot <- as.numeric(rep(NA, x.size[1]*x.size[2]))
+          md.plot[goodPix.pos] <- as.numeric(prova)
+          
+          if(!exists("md.all")){
+            md.all <- as.vector(md.plot)
+          }else{
+            md.all <- cbind(md.all, md.plot)
+          }
+        }
+        #here get the one with highest
       }
-      if(!exists("md.all")){
-        md.all <- as.vector(md.plot)
-      }else{
-        md.all <- cbind(md.all, md.plot)
-      }
-      
       dim(md.plot) <- c(x.size[1],x.size[2])
       #image(md.plot)
       md.store2D[[names[j]]] <- md.plot
@@ -117,7 +143,7 @@ for (i in listPlot[['V1']]){#forToday[1]) {
   }
   
   #trees <- loadITC(in.dir, proj)
-  xyz <- read.csv(paste(in.dir, "Geofiles/RSdata/ptcloud_", i, ".csv", sep=""))
+  xyz <- read.csv(paste(in.dir, "Geofiles/RSdata/pointCloud/ptcloud_", i, ".csv", sep=""))
   #colnames(xyz) <- c("X", "Y", "Z")
   lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg = 32617, resolution = 0.9, 
                      MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 

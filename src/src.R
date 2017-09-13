@@ -53,7 +53,7 @@ cut.set<-function(aug.X,out.dir, c.id){
   species <- unique(aug.X$aug.spectra.name)
   
   # Sample proportion for cal data
-  prop <- 0.8
+  prop <- 0.7
   train.data <- 0
   test.data <- 0
   j <- 1
@@ -93,13 +93,21 @@ pls.cal <- function(train.data, comps, j, nm, normalz = F){
   pls.summ <- list()
   spectra_log_dif_snv <- spectra
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
-  if(normalz){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))
-  }
+  if(normalz){spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))}
   
   leaf.trait <- traits[,j]
-  #get only 80% training, 20% to figure optimum components out?    
-  train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
-  tmp.pls = plsr(Y ~ X,scale=F, ncomp=comps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
+  if(is.character(leaf.trait)){
+    #clean
+    spectra_log_dif_snv=spectra_log_dif_snv[, colSums(is.na(spectra_log_dif_snv)) == 0]
+    tmp.y<-matrix(as.numeric(factor(leaf.trait)),ncol=1) # make numeric matrix
+    #train.PLS = data.frame(Y = I(tmp.y), X=I(spectra_log_dif_snv))
+    tmp.pls<-caret:::plsda(y = factor(tmp.y), x = spectra_log_dif_snv,  ncomp = comps,  probMethod = "softmax", type = "class")
+
+  }else{
+    train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
+    tmp.pls = plsr(Y ~ X,scale=F, ncomp=comps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
+    
+  }
   pls.summ[[nm[j]]] <- tmp.pls 
   
   return(pls.summ)
@@ -126,34 +134,20 @@ pls.calImg <- function(train.data, comps, j, nm, normalz = F){
   return(pls.summ)
 }
 
-#Calibration GP model
-gp.cal <- function(train.data, comps, j,  norm = F){
-  spectra <- as.matrix(train.data[,8:length(train.data[1,])])
-  traits <- as.matrix(train.data[,2:7])
-  gp.summ <- list()
-
-  leaf.trait <- traits[,j]
-  #get only 80% training, 20% to figure optimum components out?    
-  tmp.gp <- GP_fit(Y = I(leaf.trait), X=I(spectra))
-  pls.summ[[names(train.data[,2:7])[j]]] <- tmp.pls 
-  
-  return(gp.summ)
-}
 
 #--------------------------------------------------------------------------------------------------#
 opt.comps <- function(pls.mod.train, Y, j){
   ncomps <- NA
   tmp.pls = eval(parse(text = paste('pls.mod.train$',names(Y)[j],sep="")))
-  ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
+  if(j != 1){
+    ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
+  }else{
+    ncomps <- tmp.pls$ncomp
+  }
   return(ncomps)
 }
 #--------------------------------------------------------------------------------------------------#
-opt.compsImg <- function(pls.mod.train, Y){
-  ncomps <- NA
-  tmp.pls = eval(parse(text = paste('pls.mod.train$',names(Y),sep="")))
-  ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
-  return(ncomps)
-}
+
 
 Q2 <- function(test.PLS, tmp.pls)
 {
@@ -176,10 +170,20 @@ predict.pls <- function(pls.mod.train, test.data, optim.ncomps,j, nm, norm = F){
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
   if(norm){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))
   }    
-    leaf.trait <- traits[,j]
+  leaf.trait <- traits[,j]
+  if(is.character(leaf.trait)){
+    spectra_log_dif_snv=spectra_log_dif_snv[, colSums(is.na(spectra_log_dif_snv)) == 0]
+    
+    tmp.y<-matrix(as.numeric(factor(leaf.trait)),ncol=1) # make numeric matrix
+    test.PLS = data.frame(Y = I(tmp.y), X=I(spectra_log_dif_snv))
+    pred[[nm[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$', nm[j],sep=""))), 
+                                       newdata = spectra_log_dif_snv, ncomp=optim.ncomps, type="class"))
+    
+  }else{
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
     pred[[nm[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
-       nm[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response"))
+                                                               nm[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response"))
+  }
   return(pred)
 }
 
@@ -190,16 +194,24 @@ res.out <- function(pred.val.data, train.data, test.data, j, nm)
   # Build output dataset
   # PLSR Summary statistics
   pred.data <- as.vector(eval(parse(text = paste('pred.val.data$',nm[j],sep=""))))
-  res <- traits[,j]- pred.data
-  MSE.test <- mean(res^2)
-  RMSE.test <- sqrt(MSE.test)
-  R2 <- 1- length(pred.data) * MSE.test / sum((traits[,j]- mean(traits[,j]))^2)
-  ### Output val dataset
-  temp = data.frame(traits[,j],pred.data,res, R2, MSE.test)
-  names(temp) = c("obs","pred","res", "R2", "MSE")
+  if(is.character(traits[,j])){
+    correct <- as.numeric(factor(traits[,j])) == as.numeric(pred.data)
+    accuracy <- sum(as.numeric(correct))/length(correct)
+    temp = data.frame(as.numeric(factor(traits[,j])),as.numeric(pred.data),correct, accuracy)
+    names(temp) = c("obs","pred","res", "R2")
+  }else{
+    res <- traits[,j]- pred.data
+    MSE.test <- mean(res^2)
+    RMSE.test <- sqrt(MSE.test)
+    R2 <- 1- length(pred.data) * MSE.test / sum((traits[,j]- mean(traits[,j]))^2)
+    ### Output val dataset
+    temp = data.frame(traits[,j],pred.data,res, R2, MSE.test)
+    names(temp) = c("obs","pred","res", "R2", "MSE")
+  }
+
   out[[names(train.data[,2:7])[j]]] <- temp 
   
-  return(out)
+  return(temp)
 }
 
 

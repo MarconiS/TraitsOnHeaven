@@ -7,7 +7,7 @@ library(pls)
 library (leaps)
 library (glmnet)
 library (boot)
-library(ggplot2)
+library(tidyverse)
 library(reshape2)
 library(readr)
 #library(neonAOP)
@@ -20,14 +20,14 @@ source(paste(getwd(), '/src/src.R', sep=""))
 
 # arguments
 #parameters (to put in the arguments form to automize)
-loops <- 300
+loops <- 1000
 NeonSite <- "OSBS"
 setwd('~/Documents/Projects/TraitsOnHeaven/')
 out.dir = paste(getwd(), NeonSite,"outputs/", sep="/")
 in.dir = paste(getwd(),NeonSite,  "inputs/", sep="/")
-names <- c('abs_2yr',	'abs_5yr',	'rel_2yr',	'rel_5yr')
+#names <- c('abs_2yr',	'abs_5yr',	'rel_2yr',	'rel_5yr')
 
-#names <- c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")
+names <- c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")
 #debugging
 laps =rounds=1
 path = paste(getwd(), NeonSite, sep="/")
@@ -54,12 +54,12 @@ main <- function(loops=100, out.dir = paste(getwd(), "/outputs/", sep=""),in.dir
   
   setwd(path)
   normalize()
-  for(rounds in 1:3){
+  for(rounds in 1){
     setwd(path)
-    rPix(rounds, loops, unqCrown = cid.train, names, path=path)
-    PLSandLasso(rounds,loops, names)
+    pixPerm(rounds, 1000, unqCrown = cid.train, names, path=path)
+    PLS(rounds,1000, names)
     setwd(path) #was in.dir
-    DiscardAndRerun(names,rounds, loops, nCrowns)
+    #DiscardAndRerun(names,rounds, loops, nCrowns)
   }
   #return best 100 of last filtering
   storeFinalSet(in.dir, out.dir, rounds = 10, names, nentries = 40)
