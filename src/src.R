@@ -49,11 +49,10 @@ predict.regsubsets =function (object ,newdata ,id){
   return(mat[,xvars ]%*% coefi)
 }
 
-cut.set<-function(aug.X,out.dir, c.id){
+cut.set<-function(aug.X,out.dir, c.id, prop = 0.7){
   species <- unique(aug.X$aug.spectra.name)
   
   # Sample proportion for cal data
-  prop <- 0.7
   train.data <- 0
   test.data <- 0
   j <- 1
