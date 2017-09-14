@@ -7,7 +7,7 @@ normalizeImg<-function(hsp, scaled = T){
   # Find bad bands
   all_Bands=as.character(allBand$BandName)
   bad_Bands=as.character(allBand[which(allBand$noise==1),"BandName"])
-  if(scaled = F) {allData[,-c(1,2)] <- allData[,-c(1,2)] /10000}
+  if(scaled == F) {allData[,-c(1,2)] <- allData[,-c(1,2)] /10000}
   # Set bad bands to zero
   ndvi <- (allData$band_90- allData$band_58)/(allData$band_58 + allData$band_90)
   nir860 <- (allData$band_96 + allData$band_97)/2 
@@ -42,5 +42,25 @@ loadIMG <- function(path, proj, img.lb = 1){
   hs.sample <- brick(paste(path.raster, "hs/", img.lb, "_hyper.tif", sep = ""))
   return(list(hsp = hs.sample))
 }
-
+#-----get.plot.extent------------------------------------------------------------------------------------------
+get.plot.extent <- function(plots, buffersize){
+  centroids <- coordinates(plots)
+  xPlus <- centroids[,2]+buffersize
+  yPlus <- centroids[,1]+buffersize
+  xMinus <- centroids[,2]-buffersize
+  yMinus <- centroids[,1]-buffersize  
+  ext.pts <- cbind(xMinus, yMinus, xMinus, yPlus, xPlus, yPlus, xPlus, yMinus, xMinus, yMinus)
+  ID = plots$Plot_ID
+  
+  #credits: http://stackoverflow.com/questions/26620373/spatialpolygons-creating-a-set-of-polygons-in-r-from-coordinates
+  polys <- SpatialPolygons(mapply(function(poly, id) {
+    xy <- matrix(poly, ncol=2, byrow=TRUE)
+    Polygons(list(Polygon(xy)), ID=id)
+  }, split(ext.pts, row(ext.pts)), ID))
+  
+  # Create SPDF
+  polys.df <- SpatialPolygonsDataFrame(polys, data.frame(id=ID, row.names=ID))
+  plot(polys.df, col=rainbow(50, alpha=0.5))
+  return(polys.df)
+}
 

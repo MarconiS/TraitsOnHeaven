@@ -2,13 +2,15 @@
 
 getSpatialRegression <- function(NeonSite = "OSBS",
                                  names = c("name", "LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
+                                 in.dir = NULL, out.dir = NULL,
                                  tile = 80,
-                                 out.dir = paste(getwd(), NeonSite,"outputs/", sep="/"),
-                                 in.dir = paste(getwd(),NeonSite,  "inputs/", sep="/"),
+                                 epsg = 32617,
                                  proj = "+init=epsg:32617 +proj=utm +zone=17 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"){
   md.store1D = list()
   md.store2D = list()
-  polys.df <- get.plot.extent(plots = read.centroids(paste(NeonSite,"diversity_plot_centroids", sep="_"), tile))
+  out.dir = paste(getwd(), "outputs/", sep="/")
+  in.dir = paste(getwd(),  "inputs/", sep="/")
+  polys.df <- get.plot.extent(plots = read.centroids(paste(NeonSite,"diversity_plot_centroids", sep="_")), tile)
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
   allData=read.csv("./inputs/Spectra/CrownPix.csv")
   all_Bands=as.character(allBand$BandName)
@@ -28,7 +30,7 @@ getSpatialRegression <- function(NeonSite = "OSBS",
     hsp <- hsp[,colSums(is.na(hsp))<nrow(hsp)]
     goodPix.pos <- which(!is.na(hsp[,1]))
     hsp=as.matrix(hsp)
-
+    
     token = 0
     jj = 0
     weights <- list()
@@ -50,8 +52,8 @@ getSpatialRegression <- function(NeonSite = "OSBS",
         #read the ith model
         pls.mod.train <- mod.out[[k]]
         optim.ncomps <- mod.comps[k]
-
-        if(names != "name"){
+        
+        if(j != "name"){
           dat <- data.frame(X=I(hsp)) 
           md.plot <- predict(eval(parse(text = paste('pls.mod.train$',j,sep=""))), newdata = dat, ncomp=optim.ncomps, type='response')
         }else{
@@ -74,13 +76,13 @@ getSpatialRegression <- function(NeonSite = "OSBS",
       md.store1D[[j]] <- md.all
       rm(md.all)
     }
-    
-    xyz <- read.csv(paste(in.dir, "Geofiles/LiDAR/ptcloud_", i, ".csv", sep=""))
-    lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg, resolution = 0.9, 
-                       MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 
-                       TRESHCrown = 0.7, minDIST = 5, maxDIST = 60, HeightThreshold = 2)
-    lasITC <- spTransform(lasITC, CRS(proj))
-    
+    if(!exists("lasITC")){
+      xyz <- read.csv(paste(in.dir, "Geofiles/RSData/pointCloud/ptcloud_", i, ".csv", sep=""))
+      lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg, resolution = 0.9, 
+                         MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 
+                         TRESHCrown = 0.7, minDIST = 5, maxDIST = 60, HeightThreshold = 2)
+      lasITC <- spTransform(lasITC, CRS(proj))
+    }
     out.ave <- list()
     out.sd <-list()
     
@@ -144,24 +146,21 @@ getSpatialRegression <- function(NeonSite = "OSBS",
       out.ave[[j]] <- unlist(ave.itc)
       out.sd[[j]] <- unlist(sd.itc)
     }
-    plot.ave[[i]] <- out.ave
-    plot.sd[[i]] <- out.sd
-    
     save(out.ave, file = paste(NeonSite,i, "species_aveOutputs", sep = "_"))
     save(out.sd, file = paste(NeonSite,i, "species_sdOutputs", sep = "_"))
+    rm(lasITC)
   }
 }
 #-----getTreeRegression------------------------------------------------------------------------------------------
 
 getTreeRegression<- function(NeonSite = "OSBS", 
                              names =  c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                             out.dir = paste(getwd(), NeonSite,"outputs/", sep="/"),
-                             in.dir = paste(getwd(),NeonSite,  "inputs/", sep="/")){
+                             in.dir = NULL, out.dir = NULL){
   
-  listPlot <- (read.csv('OSBS/inputs/Plot_class.csv', header = T, stringsAsFactors = F))
+  listPlot <- (read.csv(paste(getwd(), '/inputs/Plot_class.csv', sep=""), header = T, stringsAsFactors = F))
   for (i in listPlot[['Plot_ID']]){#forToday[1]) {
-    f <- paste("~/Documents/Projects/TraitsOnHeaven/", "/traits_regression_csv/", NeonSite, "_", i, "_", "aveOutputs" ,sep="" )
-    f.sp <-  paste("~/Documents/Projects/TraitsOnHeaven/", "/species_classification_csv/", NeonSite, "_", i, "_", "species_aveOutputs" ,sep="" )
+    f <- paste(getwd(), "/traits_regression_csv/", NeonSite, "_", i, "_", "aveOutputs" ,sep="" )
+    f.sp <-  paste(getwd(), "/species_classification_csv/", NeonSite, "_", i, "_", "species_aveOutputs" ,sep="" )
     load(f)
     foo <- unlist(out.ave)
     crowns <- length(out.ave[[1]])
@@ -199,5 +198,39 @@ getTreeRegression<- function(NeonSite = "OSBS",
       geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
       theme(axis.text.x=element_text(angle=90,hjust=1)) 
     ggsave(paste(out.dir, trName, "_dist.png", sep=""), width=30, height = 20, units="in")
+  }
+}
+
+
+getPointCloud <- function(NeonString = "2014_OSBS_", in.dir = NULL, out.dir = NULL){
+  path.json <- "inputs/Geofiles/RSdata/pointCloud/extract_ptCloud.json"
+  myjsonList = fromJSON(file = path.json)
+  listPlot <- (read.csv(paste(getwd(), '/inputs/Plot_class.csv', sep=""), header = T, stringsAsFactors = F))
+  for (i in listPlot[['Plot_ID']]){#forToday[1]) {
+    #load the tif file
+    r <- raster(paste(in.dir, 'Geofiles/RSdata/hs/', i, '_hyper.tif', sep=""))
+    f1 <- paste(NeonString, "1_", floor(extent(r)[1]/1000)*1000, "_", floor(extent(r)[3]/1000)*1000, "_", "colorized.laz", sep ="")
+    f2 <- paste(NeonString, "1_", floor(extent(r)[1]/1000)*1000, "_", floor(extent(r)[3]/1000)*1000, ".laz", sep="")
+    if(file.exists(paste(in.dir,"Geofiles/RSdata/Classified_point_cloud/", f1, sep = ""))){
+      myjsonList$pipeline[[1]] <- f1
+    }else if(file.exists(paste(in.dir,"Geofiles/RSdata/Classified_point_cloud/", f2, sep = ""))){
+      myjsonList$pipeline[[1]] <- f2
+    }else{
+      warning("no laz file found for this plot")
+    }
+    poly.fill <- paste(extent(r)[1], extent(r)[3], ",", 
+                       extent(r)[2], extent(r)[3], ",",
+                       extent(r)[2], extent(r)[4], ",",
+                       extent(r)[1], extent(r)[4], ",",
+                       extent(r)[1], extent(r)[3],sep = " ")
+    myjsonList$pipeline[[2]]$polygon <- paste("POLYGON((",poly.fill, "))", sep = "" )
+    myjsonList$pipeline[[3]]$filename <- paste(NeonString, i, '.las', sep="")
+    newjson= toJSON(myjsonList)
+    write(newjson,paste(getwd(), '/inputs/Geofiles/RSdata/Classified_point_cloud/extract_ptCloud.json', sep=""))
+    setwd(paste(in.dir, "/Geofiles/RSdata/Classified_point_cloud",sep="" ))
+    system("pdal pipeline extract_ptCloud.json")
+    system(paste("pdal translate ",myjsonList$pipeline[[3]]$filename, " ", 
+                 paste('../pointCloud/', i, '.csv', sep=""), sep = ""))
+    setwd("../../../..")
   }
 }

@@ -1,6 +1,6 @@
 #-----pixPerm------------------------------------------------------------------------------------------
-pixPerm <- function(rounds, loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                    path = ("/Users/sergiomarconi/Projects/OSBS")){
+pixPerm <- function(loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
+                    path = NULL){
   out.dir = paste(getwd(), "/outputs/", sep="")
   in.dir = paste(getwd(), "/inputs/", sep="")
   # Read data
@@ -16,9 +16,9 @@ pixPerm <- function(rounds, loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N"
   for (laps in 1:loops){
     tk = 1
     for(i in unqCrown){
-      set.seed(laps + (rounds -1) * loops) # todo: change laps * odd number?
+      set.seed(laps) # todo: change laps * odd number?
       bootDat[tk,] <- allData[sample(which(allData$pixel_crownID==i), 1),]
-      set.seed(laps + (rounds -1) * loops)
+      set.seed(laps)
       bootPix[tk,] <- c(i,1 + sample(which(allData$pixel_crownID==i), 1))
       tk = tk +1
     }
@@ -29,7 +29,7 @@ pixPerm <- function(rounds, loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N"
 }
 
 #-----PLS------------------------------------------------------------------------------------------
-PLS <- function(names = NULL, loops = 1000, out.dir = paste(getwd(), "/outputs/", sep=""), in.dir = paste(getwd(), "/inputs/", sep="")){
+PLS <- function(names = NULL, loops = 1000, out.dir = NULL, in.dir = NULL){
   cr.Traits <- read.csv(paste(in.dir, "Spectra/trainCrownTraits.csv",sep=""), stringsAsFactors = F)
   nCrowns <- dim(cr.Traits)[1]
   aug.spectra <- imp.spectra(paste('Permutations/onePix1Crown_1.csv', sep = ''), in.dir)
@@ -76,59 +76,62 @@ PLS <- function(names = NULL, loops = 1000, out.dir = paste(getwd(), "/outputs/"
   }
 }
 #-----PLS_DA------------------------------------------------------------------------------------------
-PLS_DA <- function(loops = 1000, names = c("name", "LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                   out.dir = paste(getwd(), "/outputs/", sep=""), in.dir = paste(getwd(), "/inputs/", sep="")){
+PLS_DA <- function(loops = 1000, names = c("name"), j = 1, proportions = 0.7,
+                   out.dir = NULL, in.dir = NULL){
   cr.Traits <- read.csv(paste(in.dir, "Spectra/crownTraits.csv",sep=""), stringsAsFactors = F)
   nCrowns <- dim(cr.Traits)[1]
   names = "name"
-  aug.spectra <- imp.spectra(paste('Spectra/CrownPix_norm.csv', sep = ''), in.dir)
+  #aug.spectra <- imp.spectra(paste('Permutations/onePix1Crown_1.csv', sep = ''), in.dir)
   
   #matrix to store performances in
   mod.out = vector("list", loops)
   mod.stats = vector("list", loops)
   mod.comps = rep(NA, loops)
-  aug.spectra$X= NULL
-  aug.spectra <- merge(cr.Traits, aug.spectra, by.x = "pixel_crownID", by.y = "pixel_crownID")
-  X<- aug.spectra[grepl("band", names(aug.spectra))]
-  X=X[, colSums(is.na(X)) == 0]
-  Y <- aug.spectra[,names(aug.spectra) %in% names]
-  names(Y) <- "name"
-  aug.X <- data.frame(aug.spectra$name, Y, X)
-  # Subset data into cal/val by site
-  prova <- data.frame(unique(cbind(aug.spectra$pixel_crownID, aug.spectra$name)))
-  colnames(prova) <- c("pixel_crownID", "species")
-  proportions <- 0.7
-  set.seed(14)
-  out <- prova %>% 
-    group_by(species) %>%
-    filter(pixel_crownID %in% sample(pixel_crownID, ceiling(proportions*length(pixel_crownID))))
-  
-  pixID <- data.frame(as.integer(levels(out$pixel_crownID)[out$pixel_crownID]))
-  names(pixID) <- "pixel_crownID"
-  train.data <- inner_join(pixID, aug.spectra, by = "pixel_crownID")
-  test.data <- anti_join(aug.spectra, by = "pixel_crownID", pixID)
-  
-  print(paste(laps, names(Y[j])))
-  # Run calibration PLSR analysis to select optimal number of components
-  pls.mod.train <- pls.cal(train.data, 15, nm = names, j=1, norm = F)
-  #calculate number of components given min test PRESS or RMSEP
-  
-  optim.ncomps <- opt.comps(pls.mod.train, Y, j)
-  
-  pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
-  out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j)
-  
-  mod.out[[laps]] <- pls.mod.train 
-  mod.stats[[laps]] <- out.data
-  mod.comps[laps] <- optim.ncomps
-  setwd(out.dir)
+  for(laps in 1:loops) {
+    aug.spectra <- imp.spectra(paste('Permutations/onePix1Crown_', laps, '.csv', sep = ''), in.dir)
+    
+    aug.spectra$X= NULL
+    aug.spectra <- merge(cr.Traits, aug.spectra, by.x = "pixel_crownID", by.y = "pixel_crownID")
+    X<- aug.spectra[grepl("band", names(aug.spectra))]
+    X=X[, colSums(is.na(X)) == 0]
+    Y <- aug.spectra[,names(aug.spectra) %in% names]
+    names(Y) <- "name"
+    aug.X <- data.frame(aug.spectra$name, Y, X)
+    # Subset data into cal/val by site
+    prova <- data.frame(unique(cbind(aug.spectra$pixel_crownID, aug.spectra$name)))
+    colnames(prova) <- c("pixel_crownID", "species")
+    set.seed(14)
+    out <- prova %>% 
+      group_by(species) %>%
+      filter(pixel_crownID %in% sample(pixel_crownID, ceiling(proportions*length(pixel_crownID))))
+    
+    pixID <- data.frame(as.integer(levels(out$pixel_crownID)[out$pixel_crownID]))
+    names(pixID) <- "pixel_crownID"
+    train.data <- inner_join(pixID, aug.spectra, by = "pixel_crownID")
+    test.data <- anti_join(aug.spectra, by = "pixel_crownID", pixID)
+    
+    print(paste(laps, names(Y[j])))
+    # Run calibration PLSR analysis to select optimal number of components
+    pls.mod.train <- pls.cal(train.data, 15, nm = names, j=1, norm = F)
+    #calculate number of components given min test PRESS or RMSEP
+    
+    optim.ncomps <- opt.comps(pls.mod.train, Y, j)
+    
+    pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
+    out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j)
+    
+    mod.out[[laps]] <- pls.mod.train 
+    mod.stats[[laps]] <- out.data
+    mod.comps[laps] <- optim.ncomps
+    setwd(out.dir)
+  }
   save(mod.out, file = paste("models_out_", names[j],  sep = ""))
   save(mod.stats,  file = paste("models_stats_", names[j],  sep = ""))
   save(mod.comps, file = paste("models_comps_", names[j],  sep = ""))
   
 }
 #-----normalize------------------------------------------------------------------------------------------
-normalize<-function(CrownIDS){
+normalize<-function(CrownIDS, NeonSite, in.dir = NULL, out.dir = NULL){
   # Read data
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
   allData=read.csv("./inputs/Spectra/CrownPix.csv")
@@ -174,7 +177,7 @@ normalize<-function(CrownIDS){
   return(badCrowns)
 }
 #-----perform_summary------------------------------------------------------------------------------------------
-perform_summary <- function(names=NULL,out.name = NULL){
+perform_summary <- function(names=NULL,out.name = NULL, in.dir = NULL, out.dir = NULL){
   
   for(j in names){
     load(file = paste(out.dir, 'models_comps_',j, sep="" ))
@@ -206,10 +209,9 @@ perform_summary <- function(names=NULL,out.name = NULL){
       }
     }
     for(bb in mask){
+      pred=rep(NA, length(mod.stats[[1]]$pred))
+      pred.weight=rep(NA, length(mod.stats[[1]]$pred))
       if(j == "name"){
-        pred=rep(NA, length(mod.stats[[1]]$pred))
-        pred.weight=rep(NA, length(mod.stats[[1]]$pred))
-        
         for(ii in 1: length(mod.stats[[1]]$pred)) {
           temp.freq <- table(predictions[ii,])
           temp.freq.weight <- table(pred.weighted[ii,])
