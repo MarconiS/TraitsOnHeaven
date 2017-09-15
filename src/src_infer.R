@@ -198,7 +198,7 @@ getTreeRegression<- function(NeonSite = "OSBS",
     p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(Plot_ID), value))
     p + theme_bw(base_size = 16) + geom_violin(aes(fill = factor(class)), draw_quantiles = c(0.25, 0.5, 0.75)) + 
       labs(title = paste(trName, "distribution in OSBS\n"), alpha = "",x = "Plot ID", y = "value", color = "Species\n", fill = "Ecosystem type\n") +
-      geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
+      geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + #scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
       theme(axis.text.x=element_text(angle=90,hjust=1)) 
     ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
   }
