@@ -113,7 +113,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       r.sd <-raster(var.out, xmn=extent(rasters$hsp)[1], xmx=extent(rasters$hsp)[2],
                     ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS("+init=epsg:32617"))
       r.sd <- mask(r.sd, lasITC)
-      writeRaster(r.sd, paste("./outputs/variance", j,i, sep="_"),overwrite=TRUE, format='GTiff')
+      writeRaster(r.sd, paste("./outputs/rasters/variance", j,i, sep="_"),overwrite=TRUE, format='GTiff')
       
       plot(r.sd, col=heat.colors(255))
       plot(lasITC,axes=T, border="blue", add=TRUE, lwd = 1.5)
