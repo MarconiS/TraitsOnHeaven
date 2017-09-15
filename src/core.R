@@ -31,36 +31,34 @@ main <- function(NeonSite = "OSBS", loops=1000, rebuild = T,
   setwd(path)
   out.dir = paste(getwd(), "/outputs/", sep="")
   in.dir = paste(getwd(), "/inputs/", sep="")
-  rebuild = F
   CrownIDS <- read_csv(paste(path, "inputs", "Spectra", 'CrownIDS.csv', sep="/"))
   cid <- eval(parse(text = paste("CrownIDS", NeonSite, sep="$")))
   cid <- cid[!is.na(cid)]
   nCrowns = length(cid) #85
-  if(file.exists(paste(in.dir, "/Spectra/CrownPix_norm.csv", sep=""))){
+  if(!file.exists(paste(in.dir, "/Spectra/CrownPix_norm.csv", sep=""))){
     emptyCrowns <- normalize(CrownIDS, NeonSite, in.dir = in.dir, out.dir = out.dir)
     if(!is_empty(emptyCrowns)){warnings(paste("there are crowns which are empty. run whoIsEmpty() to get which one"))}
-    pixPerm(loops= 10, unqCrown = cid, names, path=path)
+    pixPerm(loops= 1000, unqCrown = cid, names, path=path)
     print("pixPerm ok")
   }
   if(rebuild == T){
-    PLS(loops=5, names, in.dir = in.dir, out.dir = out.dir)
+    PLS(loops=1000, names, in.dir = in.dir, out.dir = out.dir)
     print("PLS ok")
     setwd(path)
-    PLS_DA(loops=5, names = "name", in.dir = in.dir, out.dir = out.dir)
+    PLS_DA(loops=1000, names = "name", in.dir = in.dir, out.dir = out.dir)
     setwd(path)
     print("PLS_DA ok")
   }
   performance <- perform_summary(names, "baggedTraits.csv", in.dir = in.dir, out.dir = out.dir)
-  print("performance ok")
   print(performance)
   getPointCloud(NeonString = "2014_OSBS_", in.dir = in.dir, out.dir = out.dir)
+  print("pointCloud ok")
   getSpatialRegression(names = "name", in.dir = in.dir, out.dir = out.dir)
   print("getSpatialRegression class ok")
-  getSpatialRegression(names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                       in.dir = in.dir, out.dir = out.dir)
+  getSpatialRegression(names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"), in.dir = in.dir, out.dir = out.dir)
   print("getSpatialRegression regr ok")
   setwd(path)
-  getTreeRegression()
+  getTreeRegression(in.dir = in.dir, out.dir = out.dir)
 }
 
 main(NeonSite = "OSBS", rebuild = T)

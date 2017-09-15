@@ -1,15 +1,9 @@
 #-----getSpatialRegression------------------------------------------------------------------------------------------
 
-getSpatialRegression <- function(NeonSite = "OSBS",
-                                 names = c("name", "LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
-                                 in.dir = NULL, out.dir = NULL,
-                                 tile = 80,
-                                 epsg = 32617,
-                                 proj = "+init=epsg:32617 +proj=utm +zone=17 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"){
+getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"), in.dir = NULL, out.dir = NULL,
+                                 tile = 80, epsg = 32617, proj = "+init=epsg:32617 +proj=utm +zone=17 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"){
   md.store1D = list()
   md.store2D = list()
-  out.dir = paste(getwd(), "outputs/", sep="/")
-  in.dir = paste(getwd(),  "inputs/", sep="/")
   polys.df <- get.plot.extent(plots = read.centroids(paste(NeonSite,"diversity_plot_centroids", sep="_")), tile)
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
   allData=read.csv("./inputs/Spectra/CrownPix.csv")
@@ -19,6 +13,7 @@ getSpatialRegression <- function(NeonSite = "OSBS",
   plot.sd <- list()
   listPlot <- (read.csv('inputs/plotsList.csv', header = F, stringsAsFactors = F))
   for (i in listPlot[['V1']]){#forToday[1]) {
+    if(exists("lasITC")){rm(lasITC)}
     print(i)
     rasters <- loadIMG(in.dir, proj, img.lb = i)
     hsp <- as.array(rasters$hsp)
@@ -146,9 +141,17 @@ getSpatialRegression <- function(NeonSite = "OSBS",
       out.ave[[j]] <- unlist(ave.itc)
       out.sd[[j]] <- unlist(sd.itc)
     }
-    save(out.ave, file = paste(NeonSite,i, "species_aveOutputs", sep = "_"))
-    save(out.sd, file = paste(NeonSite,i, "species_sdOutputs", sep = "_"))
+    if(j != "name"){
+      setwd(paste(out.dir, "traits_regression_csv/", sep=""))
+      save(out.ave, file = paste(out.dir, "traits_regression_csv/", NeonSite,i, "_aveOutputs", sep = "_"))
+      save(out.sd, file = paste(out.dir, "species_classification_csv/", NeonSite,i, "_sdOutputs", sep = "_"))
+    } else{
+      setwd(paste(out.dir, "species_classification_csv/", sep=""))
+      save(out.ave, file = paste(NeonSite,i, "species_aveOutputs", sep = "_"))
+      save(out.sd, file = paste(NeonSite,i, "species_sdOutputs", sep = "_"))
+    }
     rm(lasITC)
+    setwd("../..")
   }
 }
 #-----getTreeRegression------------------------------------------------------------------------------------------
@@ -159,8 +162,8 @@ getTreeRegression<- function(NeonSite = "OSBS",
   
   listPlot <- (read.csv(paste(getwd(), '/inputs/Plot_class.csv', sep=""), header = T, stringsAsFactors = F))
   for (i in listPlot[['Plot_ID']]){#forToday[1]) {
-    f <- paste(getwd(), "/traits_regression_csv/", NeonSite, "_", i, "_", "aveOutputs" ,sep="" )
-    f.sp <-  paste(getwd(), "/species_classification_csv/", NeonSite, "_", i, "_", "species_aveOutputs" ,sep="" )
+    f <- paste(out.dir, "/traits_regression_csv/", NeonSite, "_", i, "_", "aveOutputs" ,sep="" )
+    f.sp <-  paste(out.dir, "/species_classification_csv/", NeonSite, "_", i, "_", "species_aveOutputs" ,sep="" )
     load(f)
     foo <- unlist(out.ave)
     crowns <- length(out.ave[[1]])
@@ -189,7 +192,7 @@ getTreeRegression<- function(NeonSite = "OSBS",
       allPlotsOut <- rbind(allPlotsOut, foo)
     }
   }
-  write_csv(allPlotsOut, paste(out.dir, "individualTreesOut.csv", sep=""))
+  write_csv(allPlotsOut, paste(out.dir, "tree_out/individualTreesOut.csv", sep=""))
   
   for(trName in names){
     p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(Plot_ID), value))
@@ -197,7 +200,7 @@ getTreeRegression<- function(NeonSite = "OSBS",
       labs(title = paste(trName, "distribution in OSBS\n"), alpha = "",x = "Plot ID", y = "value", color = "Species\n", fill = "Ecosystem type\n") +
       geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
       theme(axis.text.x=element_text(angle=90,hjust=1)) 
-    ggsave(paste(out.dir, trName, "_dist.png", sep=""), width=30, height = 20, units="in")
+    ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
   }
 }
 
@@ -230,7 +233,7 @@ getPointCloud <- function(NeonString = "2014_OSBS_", in.dir = NULL, out.dir = NU
     setwd(paste(in.dir, "/Geofiles/RSdata/Classified_point_cloud",sep="" ))
     system("pdal pipeline extract_ptCloud.json")
     system(paste("pdal translate ",myjsonList$pipeline[[3]]$filename, " ", 
-                 paste('../pointCloud/', i, '.csv', sep=""), sep = ""))
+                 paste('../pointCloud/ptcloud_', i, '.csv', sep=""), sep = ""))
     setwd("../../../..")
   }
 }

@@ -37,7 +37,7 @@ read.centroids <- function(file){
 #-----loadIMG------------------------------------------------------------------------------------------
 
 loadIMG <- function(path, proj, img.lb = 1){
-  path.raster <- paste(in.dir, "Geofiles/RSdata/", sep="")
+  path.raster <- paste(path, "Geofiles/RSdata/", sep="")
   #chm.sample <- raster(paste(path.raster, "LiDAR/", 'plot_', img.lb, "_chm.tif", sep = ""))
   hs.sample <- brick(paste(path.raster, "hs/", img.lb, "_hyper.tif", sep = ""))
   return(list(hsp = hs.sample))
