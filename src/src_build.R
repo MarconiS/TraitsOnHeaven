@@ -131,14 +131,14 @@ PLS_DA <- function(loops = 1000, names = c("name"), j = 1, proportions = 0.7,
   
 }
 #-----normalize------------------------------------------------------------------------------------------
-normalize<-function(CrownIDS, NeonSite, in.dir = NULL, out.dir = NULL){
+normalize<-function(CrownIDS, NeonSite, rescale = T, in.dir = NULL, out.dir = NULL){
   # Read data
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
   allData=read.csv("./inputs/Spectra/CrownPix.csv")
   # Find bad bands
   all_Bands=as.character(allBand$BandName)
   bad_Bands=as.character(allBand[which(allBand$noise==1),"BandName"])
-  #allData[,-c(1,2)] <- allData[,-c(1,2)] /10000
+  if(rescale){allData[,-c(1,2)] <- allData[,-c(1,2)] /10000}
   # Set bad bands to zero
   ndvi <- (allData$band_90- allData$band_58)/(allData$band_58 + allData$band_90)
   nir860 <- (allData$band_96 + allData$band_97)/2 

@@ -30,7 +30,7 @@ normalizeImg<-function(hsp, scaled = T){
 #-----read.centroids------------------------------------------------------------------------------------------
 
 read.centroids <- function(file){
-  plot.centr <- readOGR("./inputs/Geofiles/vector", file, stringsAsFactors = FALSE)
+  plot.centr <- readOGR("./inputs/Geofiles/", file, stringsAsFactors = FALSE)
   return(plot.centr)
 }
 

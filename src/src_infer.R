@@ -1,10 +1,9 @@
 #-----getSpatialRegression------------------------------------------------------------------------------------------
 
 getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"), in.dir = NULL, out.dir = NULL,
-                                 tile = 80, epsg = 32617, proj = "+init=epsg:32617 +proj=utm +zone=17 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"){
+                                 tile = 80, epsg = NULL, projection = NULL){
   md.store1D = list()
   md.store2D = list()
-  polys.df <- get.plot.extent(plots = read.centroids(paste(NeonSite,"diversity_plot_centroids", sep="_")), tile)
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
   allData=read.csv("./inputs/Spectra/CrownPix.csv")
   all_Bands=as.character(allBand$BandName)
@@ -15,7 +14,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
   for (i in listPlot[['V1']]){#forToday[1]) {
     if(exists("lasITC")){rm(lasITC)}
     print(i)
-    rasters <- loadIMG(in.dir, proj, img.lb = i)
+    rasters <- loadIMG(in.dir, projection, img.lb = i)
     hsp <- as.array(rasters$hsp)
     x.size <- dim(hsp)
     dim(hsp) <- c(x.size[1]*x.size[2], x.size[3])
@@ -40,7 +39,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       for(bb in 1: length(mod.r2)){
         mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
       }
-      mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) & mod.r2 >0.0)
+      mask <- which(mod.r2 %in% tail(sort(mod.r2), 100))
       if(j != "name"){weights[[j]] <- mod.r2[mask] /sum(mod.r2[mask])}
       
       for(k in mask){
@@ -76,7 +75,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg, resolution = 0.9, 
                          MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 
                          TRESHCrown = 0.7, minDIST = 5, maxDIST = 60, HeightThreshold = 2)
-      lasITC <- spTransform(lasITC, CRS(proj))
+      lasITC <- spTransform(lasITC, CRS(projection))
     }
     out.ave <- list()
     out.sd <-list()
@@ -100,7 +99,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       dim(ave.out) <- c(x.size[1],x.size[2])
       dim(var.out) <- c(x.size[1],x.size[2])
       r.ave <-raster(ave.out, xmn=extent(rasters$hsp)[1], xmx=extent(rasters$hsp)[2],
-                     ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(proj))
+                     ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(projection))
       r.ave <- mask(r.ave, lasITC)
       writeRaster(r.ave, paste("./outputs/average", j,i, sep="_"), overwrite=TRUE, format='GTiff')
       if(j != "name"){
@@ -111,14 +110,12 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       plot(lasITC,axes=T, border="blue", add=TRUE, lwd = 1.5)
       
       r.sd <-raster(var.out, xmn=extent(rasters$hsp)[1], xmx=extent(rasters$hsp)[2],
-                    ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS("+init=epsg:32617"))
+                    ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(projection))
       r.sd <- mask(r.sd, lasITC)
       writeRaster(r.sd, paste("./outputs/rasters/variance", j,i, sep="_"),overwrite=TRUE, format='GTiff')
       
       plot(r.sd, col=heat.colors(255))
       plot(lasITC,axes=T, border="blue", add=TRUE, lwd = 1.5)
-      
-      #plot(lasITC,axes=T, border="blue", add=TRUE, lwd = 2)
       dev.off()
       
       foo <- raster::extract(r.ave, lasITC)
@@ -143,8 +140,8 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
     }
     if(j != "name"){
       setwd(paste(out.dir, "traits_regression_csv/", sep=""))
-      save(out.ave, file = paste(out.dir, "traits_regression_csv/", NeonSite,i, "_aveOutputs", sep = "_"))
-      save(out.sd, file = paste(out.dir, "species_classification_csv/", NeonSite,i, "_sdOutputs", sep = "_"))
+      save(out.ave, file = paste(out.dir, "traits_regression_csv/", NeonSite,"_",i, "_aveOutputs", sep = ""))
+      save(out.sd, file = paste(out.dir, "species_classification_csv/", NeonSite,"_",i, "_sdOutputs", sep = ""))
     } else{
       setwd(paste(out.dir, "species_classification_csv/", sep=""))
       save(out.ave, file = paste(NeonSite,i, "species_aveOutputs", sep = "_"))
