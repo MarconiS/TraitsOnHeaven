@@ -16,6 +16,7 @@ pixPerm <- function(loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_pct"
   for (laps in 1:loops){
     tk = 1
     for(i in unqCrown){
+      print(i)
       set.seed(laps) # todo: change laps * odd number?
       bootDat[tk,] <- allData[sample(which(allData$pixel_crownID==i), 1),]
       set.seed(laps)
@@ -54,13 +55,15 @@ PLS <- function(names = NULL, loops = 1000, out.dir = NULL, in.dir = NULL){
       test.data <- eval.set$test
       colnames(train.data)[1] <- "name"
       colnames(test.data)[1] <- "name"
-      
+      write_csv(train.data, "train_for_baseline.csv")
+      write_csv(test.data, "test_for_baseline.csv")
+
       print(paste(laps, names(Y[j])))
       # Run calibration PLSR analysis to select optimal number of components
       pls.mod.train <- pls.cal(train.data, 15,nm = names, j, norm = F)
       #calculate number of components given min test PRESS or RMSEP
       
-      optim.ncomps <- opt.comps(pls.mod.train, Y, j)
+      optim.ncomps <- opt.comps(pls.mod.train, Y, j, Class = F)
       
       pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
       out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j)
@@ -78,6 +81,7 @@ PLS <- function(names = NULL, loops = 1000, out.dir = NULL, in.dir = NULL){
 #-----PLS_DA------------------------------------------------------------------------------------------
 PLS_DA <- function(loops = 1000, names = c("name"), j = 1, proportions = 0.7,
                    out.dir = NULL, in.dir = NULL){
+  #source("http://pastebin.com/raw.php?i=UyDBTA57") # source Devium
   cr.Traits <- read.csv(paste(in.dir, "Spectra/crownTraits.csv",sep=""), stringsAsFactors = F)
   nCrowns <- dim(cr.Traits)[1]
   names = "name"
@@ -109,16 +113,30 @@ PLS_DA <- function(loops = 1000, names = c("name"), j = 1, proportions = 0.7,
     names(pixID) <- "pixel_crownID"
     train.data <- inner_join(pixID, aug.spectra, by = "pixel_crownID")
     test.data <- anti_join(aug.spectra, by = "pixel_crownID", pixID)
+    train.data <- train.data[order(train.data$pixel_crownID),]
+    test.data <- test.data[order(test.data$pixel_crownID),]
     
+    write.csv(test.data, "test_classification.csv")
     print(paste(laps, names(Y[j])))
     # Run calibration PLSR analysis to select optimal number of components
-    pls.mod.train <- pls.cal(train.data, 15, nm = names, j=1, norm = F)
+    labelsSp <- as.data.frame(cbind(unique(Y), as.numeric(factor(unique(Y)))), stringsAsFactors = F)
+    colnames(labelsSp) <- c("name", "id")
+    lab.test <- merge(test.data[,colnames(test.data)%in%c("pixel_crownID", "name")], labelsSp[labelsSp$name %in% test.data$name, ], by = "name")
+    lab.test <- lab.test[order(lab.test$pixel_crownID),]
+    lab.train <- merge(train.data[,colnames(train.data)%in%c("pixel_crownID", "name")], labelsSp[labelsSp$name %in% train.data$name, ], by = "name")
+    lab.train <- lab.train[order(lab.train$pixel_crownID),]
+    
+    pls.mod.train <- pls.cal(train.data, numcomps=35, j=1,nm = names, normalz = T, lab.train, check.comps = T)
     #calculate number of components given min test PRESS or RMSEP
-    
-    optim.ncomps <- opt.comps(pls.mod.train, Y, j)
-    
-    pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,optim.ncomps,j, norm = F)
-    out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j)
+    #directly take ncomps
+    # foo <- unlist(lapply(pls.mod.train$name$RMSEP, min))
+    # nOcomps <- which(foo == min(foo, na.rm=T))
+    optim.ncomps <- which(pls.mod.train$name$validation$PRESS==min(pls.mod.train$name$validation$PRESS))
+    #no.comps <- which(tmp.pls$RMSEP[[ncomps]]== min(tmp.pls$RMSEP[[ncomps]]))
+    best.pred <- round(pls.mod.train$name$fitted.values)[,,optim.comps]
+    sum(best.pred==lab.train$id)/length(lab.train$id)
+    pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,norm = T, optim.ncomps=optim.ncomps,j, lab.test)
+    out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j, labelsSp)
     
     mod.out[[laps]] <- pls.mod.train 
     mod.stats[[laps]] <- out.data
@@ -188,7 +206,7 @@ perform_summary <- function(names=NULL,out.name = NULL, in.dir = NULL, out.dir =
     for(bb in 1: length(mod.r2)){
       mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
     }
-    mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) & mod.r2 > 0.0)
+    mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) )
     pred.weighted <- rep(0, length(mod.stats[[1]]$pred))
     if(j == "name"){
       norm.R2 <- scalar1(mod.r2[mask])
@@ -229,7 +247,7 @@ perform_summary <- function(names=NULL,out.name = NULL, in.dir = NULL, out.dir =
       }
     }
     if(j == "name"){
-      correct <- as.numeric(factor(mod.stats[[1]]$obs)) == as.numeric(pred)
+      correct <- as.numeric((mod.stats[[1]]$obs)) == as.numeric(pred)
       accuracy <- sum(as.numeric(correct))/length(correct)
       correct.weigth <- as.numeric(factor(mod.stats[[1]]$obs)) == as.numeric(pred.weight)
       accuracy.weight <- sum(as.numeric(correct.weigth))/length(correct.weigth)
@@ -247,6 +265,7 @@ perform_summary <- function(names=NULL,out.name = NULL, in.dir = NULL, out.dir =
         out <- rbind(out, c(j, cor(pred, mod.stats[[1]]$obs)^2, cor(pred.weighted, mod.stats[[1]]$obs)^2))
       }
     }
+    write_csv(data.frame(pred.weighted), paste(out.dir, "predicted_",j, ".csv", sep=""))
   }     
   write_csv(data.frame(out), paste(out.dir, out.name, sep=""))
 }

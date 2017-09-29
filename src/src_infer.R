@@ -76,6 +76,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
                          MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 
                          TRESHCrown = 0.7, minDIST = 5, maxDIST = 60, HeightThreshold = 2)
       lasITC <- spTransform(lasITC, CRS(projection))
+      writeOGR(lasITC, paste(out.dir, "crownDelim", sep=""), paste(i,"_itc", by=""), driver="ESRI Shapefile")
     }
     out.ave <- list()
     out.sd <-list()
@@ -156,7 +157,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
 getTreeRegression<- function(NeonSite = "OSBS", 
                              names =  c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"),
                              in.dir = NULL, out.dir = NULL){
-  
+  rm(allPlotsOut)
   listPlot <- (read.csv(paste(getwd(), '/inputs/Plot_class.csv', sep=""), header = T, stringsAsFactors = F))
   for (i in listPlot[['Plot_ID']]){#forToday[1]) {
     f <- paste(out.dir, "/traits_regression_csv/", NeonSite, "_", i, "_", "aveOutputs" ,sep="" )
@@ -171,7 +172,7 @@ getTreeRegression<- function(NeonSite = "OSBS",
     }
     
     plot.id <- rep(i, length(names) * crowns)
-    foo <- data.frame(foo, factor(categories), as.character(plot.id))
+    foo <- data.frame(foo, factor(categories), as.character(plot.id), stringsAsFactors = F)
     colnames(foo) <- c("value", "trait", "Plot_ID")
     foo <- inner_join(foo, listPlot, by = "Plot_ID")
     ####
@@ -192,12 +193,16 @@ getTreeRegression<- function(NeonSite = "OSBS",
   write_csv(allPlotsOut, paste(out.dir, "tree_out/individualTreesOut.csv", sep=""))
   
   for(trName in names){
-    p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(Plot_ID), value))
-    p + theme_bw(base_size = 16) + geom_violin(aes(fill = factor(class)), draw_quantiles = c(0.25, 0.5, 0.75)) + 
-      labs(title = paste(trName, "distribution in OSBS\n"), alpha = "",x = "Plot ID", y = "value", color = "Species\n", fill = "Ecosystem type\n") +
-      geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + #scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
-      theme(axis.text.x=element_text(angle=90,hjust=1)) 
-    ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
+    #p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(Plot_ID), value))
+    p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(name), value))
+    p + theme_bw(base_size = 16) + geom_violin( draw_quantiles = c(0.25, 0.5, 0.75)) + #+ 
+    labs(title = paste(trName, "distribution in", NeonSite,"\n"), alpha = "",x = "species", y = "P_pct") + 
+      theme(axis.text.x=element_text(angle=90,hjust=1))
+    # p + theme_bw(base_size = 16) + geom_violin(aes(fill = factor(class)), draw_quantiles = c(0.25, 0.5, 0.75)) + 
+    #   labs(title = paste(trName, "distribution in OSBS\n"), alpha = "",x = "Plot ID", y = "value", color = "Species\n", fill = "Ecosystem type\n") +
+    #   geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + #scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
+    #   theme(axis.text.x=element_text(angle=90,hjust=1)) 
+    # ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
   }
 }
 
