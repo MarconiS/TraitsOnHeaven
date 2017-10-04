@@ -16,13 +16,19 @@ pixPerm <- function(loops, unqCrown, names = c("LMA_g.m2", "d13C","d15N","C_pct"
   for (laps in 1:loops){
     tk = 1
     for(i in unqCrown){
-      print(i)
-      set.seed(laps) # todo: change laps * odd number?
-      bootDat[tk,] <- allData[sample(which(allData$pixel_crownID==i), 1),]
-      set.seed(laps)
-      bootPix[tk,] <- c(i,1 + sample(which(allData$pixel_crownID==i), 1))
+      if(sum(allData$pixel_crownID==i)==1){
+        bootDat[tk,] <- allData[which(allData$pixel_crownID==i),]
+        bootPix[tk,] <- c(i,1 + which(allData$pixel_crownID==i))
+      }else{
+        set.seed(laps) # todo: change laps * odd number?
+        bootDat[tk,] <- allData[sample(which(allData$pixel_crownID==i), 1),]
+        set.seed(laps)
+        bootPix[tk,] <- c(i,1 + sample(which(allData$pixel_crownID==i), 1))
+      }
       tk = tk +1
+      
     }
+    print(laps)
     names(bootPix) <- c("pixel_crownID", "ChosenPix")
     write.csv(bootDat, paste('inputs/Permutations/onePix1Crown_', laps, '.csv', sep = ''))
     write.csv(bootPix, paste('inputs/Permutations/onePix1Position_', laps, '.csv', sep = ''))
@@ -57,7 +63,7 @@ PLS <- function(names = NULL, loops = 1000, out.dir = NULL, in.dir = NULL){
       colnames(test.data)[1] <- "name"
       write_csv(train.data, "train_for_baseline.csv")
       write_csv(test.data, "test_for_baseline.csv")
-
+      
       print(paste(laps, names(Y[j])))
       # Run calibration PLSR analysis to select optimal number of components
       pls.mod.train <- pls.cal(train.data, 15,nm = names, j, norm = F)
@@ -117,30 +123,41 @@ PLS_DA <- function(loops = 1000, names = c("name"), j = 1, proportions = 0.7,
     test.data <- test.data[order(test.data$pixel_crownID),]
     
     write.csv(test.data, "test_classification.csv")
+    write.csv(train.data, "train_classification.csv")
+    
     print(paste(laps, names(Y[j])))
     # Run calibration PLSR analysis to select optimal number of components
     labelsSp <- as.data.frame(cbind(unique(Y), as.numeric(factor(unique(Y)))), stringsAsFactors = F)
     colnames(labelsSp) <- c("name", "id")
     lab.test <- merge(test.data[,colnames(test.data)%in%c("pixel_crownID", "name")], labelsSp[labelsSp$name %in% test.data$name, ], by = "name")
     lab.test <- lab.test[order(lab.test$pixel_crownID),]
+    write.csv(lab.test, "labtest.csv")
+    
     lab.train <- merge(train.data[,colnames(train.data)%in%c("pixel_crownID", "name")], labelsSp[labelsSp$name %in% train.data$name, ], by = "name")
     lab.train <- lab.train[order(lab.train$pixel_crownID),]
     
-    pls.mod.train <- pls.cal(train.data, numcomps=35, j=1,nm = names, normalz = T, lab.train, check.comps = T)
+    pls.mod.train <- pls.cal(train.data, numcomps=35, j=1,nm = names, normalz = T, lab.train)
     #calculate number of components given min test PRESS or RMSEP
     #directly take ncomps
     # foo <- unlist(lapply(pls.mod.train$name$RMSEP, min))
     # nOcomps <- which(foo == min(foo, na.rm=T))
-    optim.ncomps <- which(pls.mod.train$name$validation$PRESS==min(pls.mod.train$name$validation$PRESS))
-    #no.comps <- which(tmp.pls$RMSEP[[ncomps]]== min(tmp.pls$RMSEP[[ncomps]]))
-    best.pred <- round(pls.mod.train$name$fitted.values)[,,optim.comps]
-    sum(best.pred==lab.train$id)/length(lab.train$id)
-    pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,norm = T, optim.ncomps=optim.ncomps,j, lab.test)
-    out.data <- res.out(pred.val.data, train.data,nm = names, test.data, j, labelsSp)
-    
-    mod.out[[laps]] <- pls.mod.train 
-    mod.stats[[laps]] <- out.data
-    mod.comps[laps] <- optim.ncomps
+    if(!is.nan(pls.mod.train$name$validation$PRESS[1])){
+      optim.ncomps <- which(pls.mod.train$name$validation$PRESS==min(pls.mod.train$name$validation$PRESS))
+      #no.comps <- which(tmp.pls$RMSEP[[ncomps]]== min(tmp.pls$RMSEP[[ncomps]]))
+      best.pred <- round(pls.mod.train$name$fitted.values)[,,optim.ncomps]
+      sum(best.pred==lab.train$id)/length(lab.train$id)
+      pred.val.data <- predict.pls(pls.mod.train, test.data, nm = names,norm = T, optim.ncomps=optim.ncomps,j, lab.test)
+      mod.out[[laps]] <- pls.mod.train 
+      mod.stats[[laps]] <- pred.val.data
+      mod.comps[laps] <- optim.ncomps
+    }else{
+      warning("pls didn't converge!")
+      mod.out[[laps]] <- pls.mod.train 
+      out.data = data.frame(lab.test$name,rep(NA, length(lab.test$name)),rep(NA, length(lab.test$name)), -9999, -9999)
+      names(out.data) = c("obs","pred","res", "R2", "MSE")
+      mod.stats[[laps]] <- out.data
+      mod.comps[laps] <- 0
+    }
     setwd(out.dir)
   }
   save(mod.out, file = paste("models_out_", names[j],  sep = ""))
@@ -172,7 +189,8 @@ normalize<-function(CrownIDS, NeonSite, rescale = T, in.dir = NULL, out.dir = NU
   badCrowns <- na.omit(badCrowns)
   #remove any reflectance bigger than 1
   pixel_crownID <- allData[,colnames(allData) %in% "pixel_crownID"]
-  allData <- allData[,-1]
+  #allData <- allData[,-1]
+  allData <-allData[grepl("band", names(allData))]
   allData[allData>1]=NA
   
   allData <- cbind(pixel_crownID,allData)
@@ -202,55 +220,81 @@ perform_summary <- function(names=NULL,out.name = NULL, in.dir = NULL, out.dir =
     load(file = paste(out.dir, 'models_out_',j, sep="" ))
     load(file = paste(out.dir, 'models_stats_',j, sep="" ))
     mod.r2 <- rep(NA, length(mod.stats))
-    
-    for(bb in 1: length(mod.r2)){
-      mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
-    }
-    mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) )
-    pred.weighted <- rep(0, length(mod.stats[[1]]$pred))
     if(j == "name"){
+      for(bb in 1: length(mod.r2)){
+        mod.r2[bb] <- mean(mod.stats[[bb]]$name$R2)
+      }
+      mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) )
+      pred.weighted <- rep(0, length(mod.stats[[1]]$name$pred))
       norm.R2 <- scalar1(mod.r2[mask])
-      multiplier <- 10^4 #decimalplaces(min(norm.R2))
+      multiplier <- 10^2 #decimalplaces(min(norm.R2))
       weights <- floor(norm.R2 * multiplier)
-    }  
-    predictions <- sapply(mod.stats, "[[", 2)
-    #rm(pred.weighted, pred.weight, pred)
+      
+      test.data <- read_csv("test_classification.csv")
+      test.data <- test.data[colnames(test.data) %in% c("pixel_crownID", "name", "LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct")]
+      
+      lab.sp <- read.csv("spLabels.csv", stringsAsFactors = F)
+      
+    }else{
+      for(bb in 1: length(mod.r2)){
+        mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
+      }
+      mask <- which(mod.r2 %in% tail(sort(mod.r2), 100) )
+      pred.weighted <- rep(0, length(mod.stats[[1]]$pred))
+      predictions <- sapply(mod.stats, "[[", 2)
+    }
+    
     if(j == "name"){
+      rm(pred.weighted, pred.weight, pred, predictions)
       tkn <- 0
       for(bb in (mask)){
         tkn <- tkn + 1
         if(exists("pred.weighted")){
-          pred.weighted <- cbind(pred.weighted, matrix(predictions[, bb], nrow(predictions), as.integer(weights[tkn])))
+          predictions <- cbind(predictions, matrix(mod.stats[[bb]]$name$pred, nrow(test.data)))
+          pred.weighted <- cbind(pred.weighted, matrix(mod.stats[[bb]]$name$pred, nrow(test.data), as.integer(weights[tkn])))
         }else{
-          pred.weighted <- matrix(predictions[, bb], nrow(predictions), as.integer(weights[tkn]))
+          predictions <- matrix(mod.stats[[bb]]$name$pred, nrow(test.data))
+          pred.weighted <-  matrix(mod.stats[[bb]]$name$pred, nrow(test.data), as.integer(weights[tkn]))
         }
       }
-    }
-    for(bb in mask){
+      pred=rep(NA, length(mod.stats[[1]]$name$pred))
+      pred.weight=rep(NA, length(mod.stats[[1]]$name$pred))
+      for(ii in 1: length(mod.stats[[bb]]$name$pred)) {
+        temp.freq <- table(predictions[ii,])
+        temp.freq.weight <- table(pred.weighted[ii,])
+        pred[ii] <- names(temp.freq)[which(temp.freq == max(temp.freq))]
+        pred.weight[ii] <- names(temp.freq.weight)[which(temp.freq.weight == max(temp.freq.weight))]
+      }
+      pred <- as.data.frame(cbind(test.data$pixel_crownID, pred))
+      pred.weight <- as.data.frame(cbind(test.data$pixel_crownID, pred.weight))
+      colnames(pred) = c("pixel_crownID","spID")
+      colnames(pred.weight) = c("pixel_crownID","spID_w")
+    }else{
       pred=rep(NA, length(mod.stats[[1]]$pred))
       pred.weight=rep(NA, length(mod.stats[[1]]$pred))
-      if(j == "name"){
-        for(ii in 1: length(mod.stats[[1]]$pred)) {
-          temp.freq <- table(predictions[ii,])
-          temp.freq.weight <- table(pred.weighted[ii,])
-          pred[ii] <- names(temp.freq)[which(temp.freq == max(temp.freq))]
-          pred.weight[ii] <- names(temp.freq.weight)[which(temp.freq.weight == max(temp.freq.weight))]
-        }
+      if(!exists("pred.weighted")){
+        pred.weighted <- mod.stats[[bb]]$pred * mod.r2[bb]
+        pred <- mod.stats[[bb]]$pred
       }else{
-        if(!exists("pred.weighted")){
-          pred.weighted <- mod.stats[[bb]]$pred * mod.r2[bb]
-          pred <- mod.stats[[bb]]$pred
-        }else{
-          pred.weighted <- pred.weighted + mod.stats[[bb]]$pred * mod.r2[bb]
-          pred <- pred + mod.stats[[bb]]$pred
-        }
+        pred.weighted <- pred.weighted + mod.stats[[bb]]$pred * mod.r2[bb]
+        pred <- pred + mod.stats[[bb]]$pred
       }
     }
+    
+    
     if(j == "name"){
-      correct <- as.numeric((mod.stats[[1]]$obs)) == as.numeric(pred)
+      rm(evalFinal)
+      evalFinal <- merge(lab.sp, test.data, by = "name")
+      evalFinal <-unique(evalFinal)
+      evalFinal <- merge(evalFinal, pred.weight, by = "pixel_crownID")
+      evalFinal <- merge(evalFinal, pred, by = "pixel_crownID")
+      correct <- evalFinal$spID_train == evalFinal$spID
       accuracy <- sum(as.numeric(correct))/length(correct)
-      correct.weigth <- as.numeric(factor(mod.stats[[1]]$obs)) == as.numeric(pred.weight)
+      correct.weigth <- evalFinal$spID_train == evalFinal$spID_w
       accuracy.weight <- sum(as.numeric(correct.weigth))/length(correct.weigth)
+      print(accuracy)
+      print(accuracy.weight)
+      
       if(!exists("out")){
         out <- c(j, accuracy, accuracy.weight)
       }else{

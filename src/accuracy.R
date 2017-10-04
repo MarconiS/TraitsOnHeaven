@@ -7,20 +7,25 @@ test.data <- test.data[colnames(test.data) %in% c("pixel_crownID", "name", "LMA_
 
 lab.sp <- read.csv("spLabels.csv", stringsAsFactors = F)
 for(bb in 1: length(mod.r2)){
-  mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
+  mod.r2[bb] <- mean(mod.stats[[bb]]$name$R2)
 }
 mask <- which(mod.r2 %in% tail(sort(mod.r2), 100))
 allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
 allData=read.csv("./inputs/Spectra/CrownPix_norm.csv")
 crownID = test.data$pixel_crownID
-X.all <- allData[,-c(1,2)]
+allData = allData[allData$pixel_crownID %in% crownID,]
+X.all <- allData[grepl("band", names(allData))]
+normalz = T
+if(normalz){X.all <-t(diff(t(log(as.matrix(X.all))),differences=1, lag=3))}
+
 X.all=X.all[, colSums(is.na(X.all)) == 0]
+test.PLS = data.frame(X=I(X.all))
+
 rm(output)
 for(jj in mask){
   pls.mod.train <- mod.out[[jj]]
   optim.ncomps <- mod.comps[jj]
-  test.PLS = data.frame(X=I(X.all))
-  pred.val.data <- (predict(pls.mod.train$name,newdata = test.PLS, ncomp=optim.ncomps, type="class"))
+  pred.val.data <- round(predict(pls.mod.train$name,newdata = test.PLS, ncomp=optim.ncomps, type="response"))
   
   if(!exists("output")){
     output <- cbind(crownID, jj, pred.val.data)
@@ -76,9 +81,18 @@ test.data <- inner_join(test.data, lab.sp[,c(1,3)], by = "name")
 test.data <- unique(test.data)
 get_test <- inner_join(test.data, maj.vote, by = "pixel_crownID")
 get_test$realLabel <- as.numeric(factor(get_test$name))
-accuracy = sum(get_test$spID_train == get_test$realLabel) / length(get_test$pixel_crownID)
+accuracy = sum(get_test$spID_train == get_test$class) / length(get_test$pixel_crownID)
 accuracy
 baseline <- read.csv("baseline.csv")
 get_test$baseline <- baseline$X0
 accuracy = sum(get_test$baseline == get_test$name) / length(get_test$pixel_crownID)
 accuracy
+output <- read_csv("species_classification_object.csv")
+colnames(output) <- c("pixel_crownID", "modelID", "class")
+pixel.lv <- inner_join(test.data, output, by = "pixel_crownID")
+accuracy = sum(pixel.lv$spID_train == pixel.lv$class) / length(pixel.lv$pixel_crownID)
+accuracy
+
+
+
+

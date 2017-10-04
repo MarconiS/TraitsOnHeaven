@@ -42,7 +42,7 @@ main <- function(NeonSite = "OSBS", year = 2014, epsg = NULL, loops=1000, rebuil
     print("pixPerm ok")
   } 
   if(rebuild == T){
-    #PLS(loops=loops, names, in.dir = in.dir, out.dir = out.dir)
+    PLS(loops=loops, names, in.dir = in.dir, out.dir = out.dir)
     print("PLS ok")
     setwd(path)
     PLS_DA(loops=loops, names = "name", in.dir = in.dir, out.dir = out.dir)
@@ -50,11 +50,11 @@ main <- function(NeonSite = "OSBS", year = 2014, epsg = NULL, loops=1000, rebuil
     setwd(path)
     print("PLS_DA ok")
   }
-  performance <- perform_summary(names, "baggedTraits.csv", in.dir = in.dir, out.dir = out.dir)
+  #performance <- perform_summary(names, "baggedTraits.csv", in.dir = in.dir, out.dir = out.dir)
   print(performance)
   if(spatial==T){
     print(paste(year, "_", NeonSite,"_", sep=""))
-    getPointCloud(NeonString = paste(year, "_", NeonSite,"_", sep=""), in.dir = in.dir, out.dir = out.dir)
+    #getPointCloud(NeonString = paste(year, "_", NeonSite,"_", sep=""), in.dir = in.dir, out.dir = out.dir)
     print("pointCloud ok")
     getSpatialRegression(NeonSite = NeonSite, names = "name", in.dir = in.dir, out.dir = out.dir,
                          tile = tile, epsg = epsg, proj = paste("+init=epsg:",epsg, sep=""))
@@ -68,6 +68,7 @@ main <- function(NeonSite = "OSBS", year = 2014, epsg = NULL, loops=1000, rebuil
 }
 
 # main(NeonSite = "TALL", year = 2015, epsg = 2154, rebuild = F)
-# main(NeonSite = "OSBS", year = 2014, epsg = 32617, rebuild = T, loops = 1000)
+ main(NeonSite = "OSBS", year = 2014, epsg = 32617, rebuild = F, loops = 1000)
 # main(NeonSite = "ALL", year = 2015, epsg = 2154, rebuild = T, spatial = F)
-main(NeonSite = "NIST", rebuild = T, spatial = F, names = "name")
+#main(NeonSite = "NIST", rebuild = T, spatial = F, names = "name")
+#main(NeonSite = "OSBS", rebuild = F, spatial = T)

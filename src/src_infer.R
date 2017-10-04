@@ -1,7 +1,8 @@
 #-----getSpatialRegression------------------------------------------------------------------------------------------
 
+
 getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C","d15N","C_pct","N_pct", "P_pct"), in.dir = NULL, out.dir = NULL,
-                                 tile = 80, epsg = NULL, projection = NULL){
+                                 tile = 80, epsg = NULL, proje = NULL, normalz = T){
   md.store1D = list()
   md.store2D = list()
   allBand=read.csv("./inputs/Spectra/neon_aop_bands.csv")
@@ -14,17 +15,18 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
   for (i in listPlot[['V1']]){#forToday[1]) {
     if(exists("lasITC")){rm(lasITC)}
     print(i)
-    rasters <- loadIMG(in.dir, projection, img.lb = i)
+    rasters <- loadIMG(in.dir, proje, img.lb = i)
     hsp <- as.array(rasters$hsp)
     x.size <- dim(hsp)
     dim(hsp) <- c(x.size[1]*x.size[2], x.size[3])
     hsp <- as.data.frame(hsp)
     colnames(hsp) <- names(allData)[3:428]
     hsp <- normalizeImg(hsp)
-    hsp <- hsp[,colSums(is.na(hsp))<nrow(hsp)]
     goodPix.pos <- which(!is.na(hsp[,1]))
     hsp=as.matrix(hsp)
-    
+    if(normalz){hsp <-t(diff(t(log(hsp)),differences=1, lag=3))}
+    hsp <- hsp[,colSums(is.na(hsp))<nrow(hsp)]
+
     token = 0
     jj = 0
     weights <- list()
@@ -37,7 +39,11 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       load(file = paste(out.dir, 'models_stats_',j, sep="" ))
       mod.r2 <- rep(NA, length(mod.stats))
       for(bb in 1: length(mod.r2)){
-        mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
+        if(j == "name"){
+          mod.r2[bb] <- mean(mod.stats[[bb]]$name$R2)
+        }else{
+          mod.r2[bb] <- mean(mod.stats[[bb]]$R2)
+        }
       }
       mask <- which(mod.r2 %in% tail(sort(mod.r2), 100))
       if(j != "name"){weights[[j]] <- mod.r2[mask] /sum(mod.r2[mask])}
@@ -53,7 +59,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
         }else{
           dat <- data.frame(X=I(hsp)) 
           prova <- as.vector(predict(eval(parse(text = paste('pls.mod.train$', j,sep=""))), 
-                                     newdata = na.omit(hsp), ncomp=optim.ncomps, type="class"))
+                                     newdata = na.omit(hsp), ncomp=optim.ncomps, type="response"))
           md.plot <- as.numeric(rep(NA, x.size[1]*x.size[2]))
           md.plot[goodPix.pos] <- as.numeric(prova)
         }
@@ -72,11 +78,12 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
     }
     if(!exists("lasITC")){
       xyz <- read.csv(paste(in.dir, "Geofiles/RSData/pointCloud/ptcloud_", i, ".csv", sep=""))
-      lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg, resolution = 0.9, 
+      lasITC <- itcLiDAR(X = xyz$X, Y = xyz$Y, Z = xyz$Z, epsg, resolution = 0.5, 
                          MinSearchFilSize = 3, MaxSearchFilSize = 7, TRESHSeed = .8, 
                          TRESHCrown = 0.7, minDIST = 5, maxDIST = 60, HeightThreshold = 2)
-      lasITC <- spTransform(lasITC, CRS(projection))
-      writeOGR(lasITC, paste(out.dir, "crownDelim", sep=""), paste(i,"_itc", by=""), driver="ESRI Shapefile")
+      lasITC <- spTransform(lasITC, CRS(proje))
+      writeOGR(lasITC, paste(out.dir, "crownDelim", sep=""), paste(i,"_itc", by=""), overwrite_layer = T, 
+               check_exists = T, driver="ESRI Shapefile")
     }
     out.ave <- list()
     out.sd <-list()
@@ -100,7 +107,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       dim(ave.out) <- c(x.size[1],x.size[2])
       dim(var.out) <- c(x.size[1],x.size[2])
       r.ave <-raster(ave.out, xmn=extent(rasters$hsp)[1], xmx=extent(rasters$hsp)[2],
-                     ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(projection))
+                     ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(proje))
       r.ave <- mask(r.ave, lasITC)
       writeRaster(r.ave, paste("./outputs/average", j,i, sep="_"), overwrite=TRUE, format='GTiff')
       if(j != "name"){
@@ -111,7 +118,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
       plot(lasITC,axes=T, border="blue", add=TRUE, lwd = 1.5)
       
       r.sd <-raster(var.out, xmn=extent(rasters$hsp)[1], xmx=extent(rasters$hsp)[2],
-                    ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(projection))
+                    ymn=extent(rasters$hsp)[3], ymx=extent(rasters$hsp)[4], crs=CRS(proje))
       r.sd <- mask(r.sd, lasITC)
       writeRaster(r.sd, paste("./outputs/rasters/variance", j,i, sep="_"),overwrite=TRUE, format='GTiff')
       
@@ -151,6 +158,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", names = c("LMA_g.m2", "d13C"
     rm(lasITC)
     setwd("../..")
   }
+  
 }
 #-----getTreeRegression------------------------------------------------------------------------------------------
 
@@ -192,17 +200,29 @@ getTreeRegression<- function(NeonSite = "OSBS",
   }
   write_csv(allPlotsOut, paste(out.dir, "tree_out/individualTreesOut.csv", sep=""))
   
+  allPlotsOut <- cbind(allPlotsOut, rep("predicted", dim(allPlotsOut)[1]))
+  colnames(allPlotsOut)[7] <- "origin"
+  cr.Traits <- read.csv(paste(in.dir, "Spectra/trainCrownTraits.csv",sep=""), stringsAsFactors = F)
+  cr.Traits <- cr.Traits[,colnames(cr.Traits) %in% c("LMA_g.m2", "d13C", "d15N","C_pct", "N_pct", "P_pct","name")]
+  cr.Traits <- melt(cr.Traits)
+  cr.Traits <- inner_join(cr.Traits, species.id, by = "name")
+  cr.Traits <- cbind(cr.Traits, rep("observed", dim(cr.Traits)[1]))
+  colnames(cr.Traits) <- c("name", "trait", "value", "species","origin")
+  final.df <- rbind(cr.Traits, allPlotsOut[,c("name", "trait", "value", "species","origin")])
+  
   for(trName in names){
     #p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(Plot_ID), value))
-    p <- ggplot(subset(allPlotsOut, trait == trName), aes(factor(name), value))
-    p + theme_bw(base_size = 16) + geom_violin( draw_quantiles = c(0.25, 0.5, 0.75)) + #+ 
-    labs(title = paste(trName, "distribution in", NeonSite,"\n"), alpha = "",x = "species", y = "P_pct") + 
-      theme(axis.text.x=element_text(angle=90,hjust=1))
+    p <- ggplot(subset(final.df, trait == trName), aes(factor(name), value))
+    p + theme_bw(base_size = 16) + geom_violin(aes(colour = factor(origin), alpha = 0.5), draw_quantiles = c(0.25, 0.5, 0.75)) + #+ 
+      labs(title = paste(trName, "distribution in", NeonSite,"\n"), alpha = "",x = "species", y = trName) + 
+      theme(axis.text.x=element_text(angle=90,hjust=1)) 
+    
+    
     # p + theme_bw(base_size = 16) + geom_violin(aes(fill = factor(class)), draw_quantiles = c(0.25, 0.5, 0.75)) + 
     #   labs(title = paste(trName, "distribution in OSBS\n"), alpha = "",x = "Plot ID", y = "value", color = "Species\n", fill = "Ecosystem type\n") +
     #   geom_jitter(aes(colour = factor(name), alpha = 0.5), height = 0, width = 0.1) + #scale_colour_manual(values = c("yellow", "black", "red", "gray", "orange", "brown")) +
     #   theme(axis.text.x=element_text(angle=90,hjust=1)) 
-    # ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
+    ggsave(paste(out.dir, "tree_out/", trName, "_dist.png", sep=""), width=30, height = 20, units="in")
   }
 }
 

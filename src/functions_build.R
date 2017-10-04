@@ -18,7 +18,7 @@ cut.set<-function(aug.X,out.dir, c.id, prop = 0.7){
     set.seed(1)
     #subset by species
     temp.data <- aug.X[which(aug.X$aug.spectra.name==i),]
-    rows <- sample(1:nrow(temp.data),floor(prop*nrow(temp.data)))
+    rows <- sample(1:nrow(temp.data),ceiling(prop*nrow(temp.data)))
     foo <- c.id[which(aug.X$aug.spectra.name==i)]
     cr.id <- c(cr.id, foo[rows])
     cal.data = droplevels(temp.data[rows,])
@@ -38,11 +38,11 @@ cut.set<-function(aug.X,out.dir, c.id, prop = 0.7){
 }
 
 # pls.cal ---------------------------------------------------
-pls.cal <- function(train.data, numcomps = 15, nm,j,  normalz = F, lab.train = NULL, check.comps = NULL){
+pls.cal <- function(train.data, numcomps = 15, nm,j,  normalz = F, lab.train = NULL){
   
   spectra <- as.matrix(train.data[grepl("band", names(train.data))])
   traits <- as.matrix(train.data[,names(train.data) %in% nm])
-
+  
   pls.summ <- list()
   spectra_log_dif_snv <- spectra
   #spectra_log_dif_snv <- standardNormalVariate(X = t(diff(t(log(spectra)),differences=1, lag=3)))
@@ -55,7 +55,7 @@ pls.cal <- function(train.data, numcomps = 15, nm,j,  normalz = F, lab.train = N
     tmp.y<-matrix(as.numeric(lab.train$id,ncol=1)) # make numeric matrix
     train.PLS = data.frame(Y = I(tmp.y), X=I(spectra_log_dif_snv))
     #tmp.pls<-plsda(y = factor(tmp.y), x = spectra_log_dif_snv,  ncomp = comps,  probMethod = "softmax", type = "class")
-    tmp.pls<- plsr(Y ~ X,cv.scale=TRUE, ncomp=numcomps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS, probMethod = "softmax", type = "class") 
+    tmp.pls<- plsr(Y ~ X, ncomp=numcomps,validation="LOO", probMethod = "softmax", trace=TRUE, method = "oscorespls", data = train.PLS, type = "class") 
   }else{
     train.PLS = data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
     tmp.pls = plsr(Y ~ X,scale=F, ncomp=numcomps,validation="LOO", trace=TRUE, method = "oscorespls", data = train.PLS) 
@@ -72,13 +72,13 @@ opt.comps <- function(pls.mod.train, Y, j, Class = F){
   if(!Class){
     ncomps <- which(tmp.pls$validation$PRESS==min(tmp.pls$validation$PRESS[3:length(tmp.pls$validation$PRESS)]))
   }
-  return(c(ncomps, no.comps))
+  return(c(ncomps))
 }
 #-----predict.pls------------------------------------------------------------------------------------------
 predict.pls <- function(pls.mod.train, test.data, optim.ncomps=NULL,j, nm, norm = F, lab.test = NULL){
   spectra <- as.matrix(test.data[grepl("band", names(test.data))])
   traits <- as.matrix(test.data[,names(test.data) %in% nm])
-  pred <- list()
+  out <- list()
   spectra_log_dif_snv <- spectra
   if(norm){  spectra_log_dif_snv <-t(diff(t(log(spectra)),differences=1, lag=3))}    
   leaf.trait <- traits[,j]
@@ -87,16 +87,21 @@ predict.pls <- function(pls.mod.train, test.data, optim.ncomps=NULL,j, nm, norm 
     
     tmp.y<-matrix(as.numeric(lab.test$id, ncol=1)) # make numeric matrix
     test.PLS <- data.frame(Y = I(tmp.y), X=I(spectra_log_dif_snv))
-    pred<-predict(pls.mod.train,newdata=test.PLS, comps = optim.ncomps)
-    round(pred$name)
-    sum(round(pred$name)==lab.test$id)/length(lab.test$id)
+    pred<-predict(pls.mod.train$name,newdata=test.PLS, comps = optim.ncomps)
+    accu = (sum(round(pred)==lab.test$id)/length(lab.test$id))
+    print(accu)
+    #out.data = data.frame(lab.test$name,pred.val.data$,rep(NA, length(lab.test$name)), -9999, -9999)
+    temp = data.frame(traits[,j],round(pred), rep(accu,length(traits[,j])))
+    names(temp) = c("obs","pred", "R2")
     
+    out[[nm[j]]] <- temp
+                      
   }else{
     test.PLS <- data.frame(Y = I(leaf.trait), X=I(spectra_log_dif_snv))
-    pred[[nm[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
+    out[[nm[j]]] <- as.vector(predict(eval(parse(text = paste('pls.mod.train$',
                                                                nm[j],sep=""))), newdata = test.PLS, ncomp=optim.ncomps, type="response"))
   }
-  return(pred)
+  return(out)
 }
 #-----res.out------------------------------------------------------------------------------------------
 res.out <- function(pred.val.data, train.data, test.data, j, nm, labelsSp = NULL)
@@ -106,7 +111,7 @@ res.out <- function(pred.val.data, train.data, test.data, j, nm, labelsSp = NULL
   # Build output dataset
   # PLSR Summary statistics
   if(is.character(traits[,j])){
-    pred.data <- round(as.vector(pred.val.data$name))
+    pred.data <- round(as.vector(pred.val.data))
     correct <- labelsSp$id == as.numeric(pred.data)
     accuracy <- sum(as.numeric(correct))/length(correct)
     temp = data.frame(as.numeric(factor(traits[,j])),as.numeric(pred.data),correct, accuracy)
@@ -137,3 +142,4 @@ decimalplaces <- function(x) {
     return(0)
   }
 }
+
