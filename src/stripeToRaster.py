@@ -90,7 +90,7 @@ def stack_subset_bands(reflArray,reflArray_metadata,bands,clipIndex):
 
 def subset_clean_band(reflArray,reflArray_metadata,clipIndex,bandIndex):
     
-    bandCleaned = reflArray[clipIndex['yMin']:clipIndex['yMax'],clipIndex['xMin']:clipIndex['xMax'],bandIndex-1].astype(np.int16)
+    bandCleaned = reflArray[clipIndex['yMin']:clipIndex['yMax'],clipIndex['xMin']:clipIndex['xMax'],bandIndex].astype(np.int16)
     
     return bandCleaned 
 
@@ -137,8 +137,7 @@ def array2raster(newRaster,reflBandArray,reflArray_metadata, extent, ras_dir):
     outRaster.FlushCache()
     os.chdir(pwd) 
 
-
-def stripe2Raser(f, pt, xx, yy):
+def stripe2Raser(f, pt):
     
     full_path = pt+f
     refl, refl_md, wavelengths = h5refl2array(full_path)
@@ -149,50 +148,47 @@ def stripe2Raser(f, pt, xx, yy):
     rgb = np.delete(rgb, np.r_[192:210])    
     xmin, xmax, ymin, ymax = refl_md['extent']
     clipExtent = {}
-    clipExtent['xMin'] = max(int(xmin/1000)*1000 +1000*int(xx), int(xmin))
-    clipExtent['yMin'] = max(int(ymin/1000)*1000 +1000*int(yy), int(ymin))
-    clipExtent['yMax'] = min(int(ymin/1000)*1000 +1000*(int(yy)+1), int(ymax))
-    clipExtent['xMax'] = min(int(xmin/1000)*1000 +1000*(int(xx)+1), int(xmax))
+    clipExtent['xMin'] = int(xmin) 
+    clipExtent['yMin'] = int(ymin) 
+    clipExtent['yMax'] = int(ymax) 
+    clipExtent['xMax'] = int(xmax) 
+
     subInd = calc_clip_index(clipExtent,refl_md['ext_dict']) 
     subInd['xMax'] = int(subInd['xMax'])
     subInd['xMin'] = int(subInd['xMin'])
     subInd['yMax'] = int(subInd['yMax'])
     subInd['yMin'] = int(subInd['yMin'])
-    hcp = stack_subset_bands(refl,refl_md,rgb,subInd)
+    reflBandArray = stack_subset_bands(refl,refl_md,rgb,subInd)
 
-    sub_meta = refl_md
-    ii = f.replace(' ','')[:-3].upper()
-    #ii = ii+'_'+str(clipExtent['xMin'])+'_'+str((clipExtent['yMax']))+'.tif'
-    ii = str(clipExtent['xMin'])+str((clipExtent['yMax']))+'.tif'
+    subArray_rows = subInd['yMax'] - subInd['yMin']
+    subArray_cols = subInd['xMax'] - subInd['xMin']
+    hcp = np.zeros((subArray_rows,subArray_cols,len(rgb)),dtype = np.int16)
 
-    #np.save(ii+".npy", hcp)
-    ras_dir = './tmp'
-    array2raster(ii,hcp,sub_meta, clipExtent, ras_dir)
+    band_clean_dict = {}
+    band_clean_names = []
+    for i in range(len(rgb)):
+        band_clean_names.append("b"+str(rgb[i])+"_refl_clean")
+        band_clean_dict[band_clean_names[i]] = refl[:,:,rgb[i]].astype(np.int16)
+        hcp[...,i] = band_clean_dict[band_clean_names[i]]
 
-def stripe2foo(f, pt, xx, yy):
-  full_path = pt+f
-  refl, refl_md, wavelengths = h5refl2array(full_path)
-  refl_md['extent']
-  rgb = np.r_[0:425]
-  rgb = np.delete(rgb, np.r_[419:426])
-  rgb = np.delete(rgb, np.r_[283:315])
-  rgb = np.delete(rgb, np.r_[192:210])    
-  xmin, xmax, ymin, ymax = refl_md['extent']
-  clipExtent = {}
-  clipExtent['xMin'] = max(int(xmin/1000)*1000 +1000*int(xx), int(xmin))
-  clipExtent['yMin'] = max(int(ymin/1000)*1000 +1000*int(yy), int(ymin))
-  clipExtent['yMax'] = min(int(ymin/1000)*1000 +1000*(int(yy)+1), int(ymax))
-  clipExtent['xMax'] = min(int(xmin/1000)*1000 +1000*(int(xx)+1), int(xmax))
-  print(clipExtent)
-  
-  
+    reflArray_metadata = refl_md
+    newRaster = f.replace(' ','')[:-3].upper()
+    newRaster = str(clipExtent['xMin'])+str((clipExtent['yMax']))+'.tif'
+
+    ras_dir = '/ufrc/ewhite/s.marconi/Marconi2018/spatialPhase/rasters/'
+    array2raster(newRaster,hcp,reflArray_metadata, clipExtent, ras_dir)
+
+
 import numpy as np
 import h5py
 import gdal, osr
-import matplotlib.pyplot as plt
 import sys
 import ogr, os
 
-stripe2Raser(sys.argv[1],  sys.argv[2],  sys.argv[3], sys.argv[4])
-#stripe2foo(sys.argv[1],  sys.argv[2],  sys.argv[3], sys.argv[4])
+#pt = "/ufrc/ewhite/s.marconi/Marconi2018/spatialPhase/OSBS/Reflectance/"
+#f = "NEON_D03_OSBS_DP3_394000_3280000_reflectance.h5"
+#stripe2Raser(f,  pt)
+
+stripe2Raser(sys.argv[1],  sys.argv[2])
+print("at least raster is good")
 

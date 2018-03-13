@@ -2,5 +2,5 @@ for datafile in "$@"
 do
   filename="${datafile##*/}"
   echo $filename
-  sbatch siteScale.SLURM $filename OSBS
+  sbatch bCrowns.SLURM $filename OSBS
 done
