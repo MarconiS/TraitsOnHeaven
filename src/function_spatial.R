@@ -1,37 +1,47 @@
+
 predict_tile <- function(bb, plsglm, hsp, w.daic){
   #output.daic = output.sd.daic = rep(0,dim(hsp)[1])
   out = list()
-  pred.val.data <- predict(plsglm[[bb]]$mod, newdata = hsp, ncomp=plsglm[[bb]]$ncomp, type='response',  se.fit = T)
-  out$output.daic <-  pred.val.data$fit * w.daic[bb]
-  out$output.sd.daic <- as.vector(pred.val.data$se.fit) * w.daic[bb]
-  out$output <- as.vector(pred.val.data$fit)
+  #pred.val.data <- predict.withsd(plsglm[[bb]]$mod, newdata = hsp, ncomp=plsglm[[bb]]$ncomp, type='response',  se.fit = T)
+  pred.val.data <- predict.withsd(plsglm[[bb]]$mod, newdata = hsp, ncomp=plsglm[[bb]]$ncomp, type='response',  wt = plsglm[[bb]]$mod$FinalModel$weights)
+  out$output.daic <-  pred.val.data[,1] * w.daic[bb]
+  out$pi.upper <- pred.val.data[,3]* w.daic[bb]
+  out$pi.lower <- pred.val.data[,2]* w.daic[bb]
+
+  #out$output.sd.daic <- as.vector(pred.val.data$se.fit) * w.daic[bb]
+  out$output <- as.vector(pred.val.data[,1])
   return(out)
 }
-
 
 traitsToshp <- function(x.size, goodPix.pos, extnt, epsg,itc_shp, trName, inc_ave){
   #allocate new rasters
   #library(velox)
-  tpt1 = tpt2 = tpt3 <- matrix(NA, nrow = x.size[1]*x.size[2])
+  tpt1 = tpt2 = tpt3 = tpt4 <- matrix(NA, nrow = x.size[1]*x.size[2])
   tpt1[goodPix.pos,] <- inc_ave[,1]
   tpt2[goodPix.pos] <- inc_ave[,2]
   tpt3[goodPix.pos] <- inc_ave[,3]
-  
+  tpt4[goodPix.pos] <- inc_ave[,4]
+
+
   dim(tpt1) <- c(x.size[1],x.size[2])
   dim(tpt2) <- c(x.size[1],x.size[2])
   dim(tpt3) <- c(x.size[1],x.size[2])
-  
+  dim(tpt4) <- c(x.size[1],x.size[2])
+
+
   r.temp1 <-raster(tpt1, xmn=extnt[1], xmx=extnt[2],
                    ymn=extnt[3], ymx=extnt[4], crs=CRS(paste("+init=epsg:", epsg, sep="")))
-  
+
   r.temp2 <-raster(tpt2, xmn=extnt[1], xmx=extnt[2],
                    ymn=extnt[3], ymx=extnt[4], crs=CRS(paste("+init=epsg:", epsg, sep="")))
-  
+
   r.temp3 <-raster(tpt3, xmn=extnt[1], xmx=extnt[2],
                    ymn=extnt[3], ymx=extnt[4], crs=CRS(paste("+init=epsg:", epsg, sep="")))
-  
-  r.temp <- raster::stack(r.temp1, r.temp2, r.temp3)
-  rm (r.temp1, r.temp2, r.temp3, tpt1, tpt2, tpt3)
+  r.temp4 <-raster(tpt4, xmn=extnt[1], xmx=extnt[2],
+                   ymn=extnt[3], ymx=extnt[4], crs=CRS(paste("+init=epsg:", epsg, sep="")))
+
+  r.temp <- raster::stack(r.temp1, r.temp2, r.temp3, r.temp4)
+  rm (r.temp1, r.temp2, r.temp3, r.temp4, tpt1, tpt2, tpt3, tpt4)
   #r.temp <- mask(r.temp, itc_shp)
   # writeRaster(r.ave, paste("./outputs/average", j,i, sep="_"), overwrite=TRUE, format='GTiff')
   itc_shp <- crop(itc_shp,extent(r.temp))
@@ -39,7 +49,7 @@ traitsToshp <- function(x.size, goodPix.pos, extnt, epsg,itc_shp, trName, inc_av
   #tmp.val <- extract(r.temp, crop(itc_shp,extent(r.temp)))
   tmp.val <- raster::extract(r.temp, itc_shp)
   tmp.val <- Reduce(rbind, lapply(tmp.val,  function(x) apply(x,2,mean, na.rm=TRUE)))
-  
+
   df.N = as.data.frame(cbind(tmp.val, poly.id))
   colnames(df.N) <- c(trName, "ID")
   #rownames(df.N) <- seq(0,dim(tmp.val)[1]-1)
@@ -59,14 +69,14 @@ pixelRaster<- function(inc_ave,x.size, goodPix.pos, extnt, epsg, trName){
   r.temp <-raster(template, xmn=extnt[1], xmx=extnt[2],
                   ymn=extnt[3], ymx=extnt[4], crs=CRS(paste("+init=epsg:", epsg, sep="")))
   writeRaster(r.temp, filename=paste(trName, "tif", sep="."), format="GTiff",overwrite=TRUE )
-  
+
 }
 
 normalizeImg<-function(hsp, scaled = F){
   if(scaled == F) {hsp <- hsp /10000}
   # Set bad bands to zero
   ndvi <- (hsp$band_90- hsp$band_58)/(hsp$band_58 + hsp$band_90)
-  nir860 <- (hsp$band_96 + hsp$band_97)/2 
+  nir860 <- (hsp$band_96 + hsp$band_97)/2
   hsp[which(ndvi < 0.7 | nir860 < .3),]=NA
   hsp[hsp <0 |hsp>1]=NA
   # Vector normalize spectra
@@ -94,8 +104,8 @@ getSpatialRegression <- function(NeonSite = "OSBS", nm = c("LMA_g.m2","N_pct", "
   hsp <- normalizeImg(hsp)
   goodPix.pos <- which(!is.na(hsp[,1]))
   hsp=as.matrix(hsp)
-  
-  
+
+
   site_bands <- matrix(0, dim(hsp)[1],2)
   #change in the future
   if(NeonSite=="OSBS"){
@@ -116,19 +126,19 @@ getSpatialRegression <- function(NeonSite = "OSBS", nm = c("LMA_g.m2","N_pct", "
       hsp<- cbind(site_bands, hsp)
     }
     hsp <- hsp[complete.cases(hsp), ]
-    
+
     mod_dir = "./ModelBuild/ALL/"
     load(file = paste(mod_dir, 'plsglm_',j, sep="" ))
-    
+
     mod.r2=rep(0,length(plsglm))
     mod.aic=rep(0,length(plsglm))
-    
+
     for(bb in 1: length(plsglm)){
-      mod.aic[bb] <-plsglm[[bb]]$score$aic 
+      mod.aic[bb] <-plsglm[[bb]]$score$aic
     }
     delta.aic <- mod.aic - min(mod.aic)
     weights <- softmax(-0.5*delta.aic)
-    
+
     output.daic = output.sd.daic = rep(0,dim(hsp)[1])
     w.daic <- rep(0, length(weights))
     w.daic <- weights
@@ -137,7 +147,7 @@ getSpatialRegression <- function(NeonSite = "OSBS", nm = c("LMA_g.m2","N_pct", "
       pls.mod.train <- plsglm[[bb]]$mod
       optim.ncomps <- plsglm[[bb]]$ncomp
       pred.val.data <- predict(pls.mod.train, newdata = hsp, ncomp=optim.ncomps, type='response',  se.fit = T)
-      
+
       output.daic <- output.daic + pred.val.data$fit * w.daic[bb]
       output.sd.daic <-  output.sd.daic + as.vector(pred.val.data$se.fit) * weights[bb]
       #you have then a vector of predicions whose legnth is sum(crID_i * pixels_i)
@@ -152,20 +162,20 @@ getSpatialRegression <- function(NeonSite = "OSBS", nm = c("LMA_g.m2","N_pct", "
     rm(plsglm)
     output.daic <- as.data.frame(as.matrix(output.daic))
     output.sd.daic <- as.data.frame(as.matrix(output.sd.daic))
-    
+
     colnames(output.daic) <-  "yhat"
     colnames(output.sd.daic) <-  "yhat_unc"
     output.daic <- output.daic[!is.nan(output.daic$yhat), ]
     output.sd.daic <- output.sd.daic[!is.nan(output.sd.daic$yhat), ]
-    
+
     pdf(paste("hist", j, ".pdf", sep=""))
     hist(output)
     dev.off()
-    
+
     inc_ave <-apply(output,2, function(x) mean(x, na.rm=T))
     inc_ave_sd <- apply(output,2, function(x) sd(x, na.rm=T))
     #pix.ave <- pixelRaster(inc_ave,x.size, goodPix.pos, extnt, epsg, paste(j, "ave", sep="_"))
-    
+
     itc_shp <- traitsToshp(x.size, goodPix.pos, extnt, epsg,itc_shp, paste(j, "ave", sep="_"), output.daic)
     itc_shp <- traitsToshp(x.size, goodPix.pos, extnt, epsg,itc_shp, paste(j, "ster", sep="_"),output.sd.daic)
     itc_shp <- traitsToshp(x.size, goodPix.pos, extnt, epsg,itc_shp,paste(j, "md_sd", sep="_"), inc_ave_sd)
@@ -207,16 +217,16 @@ gdal_polygonizeR <- function(x, outshape=NULL, gdalformat = 'ESRI Shapefile',
   return(NULL)
 }
 
-crownIT <- function(las_id = NULL, epsg=NULL, NeonSite = "OSBS", method = 'silva', 
+crownIT <- function(las_id = NULL, epsg=NULL, pt = NULL, tileID = NULL, out_path = NULL,  NeonSite = "OSBS", method = 'silva',
                     max_cr_factor = 0.6, exclusion = 0.5, mv = 7, minh = 7){
   library(raster)
   library(lidR)
   source("./src/function_spatial.R")
-  pt <-  paste("./spatialPhase/", NeonSite, "/ClassifiedPointCloud/", sep = "")
+  #pt <-  paste("./spatialPhase/", NeonSite, "/ClassifiedPointCloud/", sep = "")
   i <- list.files(pt, pattern = las_id)
-  
+
   las = readLAS(paste(pt, i, sep=""))
-  
+
   # normalization
   lasnormalize(las, method = "knnidw", k = 10L)
 
@@ -226,10 +236,9 @@ crownIT <- function(las_id = NULL, epsg=NULL, NeonSite = "OSBS", method = 'silva
   kernel = matrix(1,3,3)
   chm = raster::focal(chm, w = kernel, fun = mean)
   chm = raster::focal(chm, w = kernel, fun = mean)
-  
+
   ttops = tree_detection(chm, mv, minh)
   crowns <-lastrees_silva(las, chm, ttops, max_cr_factor = max_cr_factor, exclusion = exclusion, extra = T)
   x <- gdal_polygonizeR(crowns, pypath="/ufrc/ewhite/s.marconi/Marconi2018/src/polygonize/")
-  pt <- paste("./spatialPhase/", NeonSite, "/ITCs/", sep = "")
-  writeOGR(x, dsn=pt, paste(i, "silva", sep="_"), overwrite_layer = T, check_exists = T, driver="ESRI Shapefile")
+  writeOGR(x, dsn=out_path, paste(tileID, "silva", sep="_"), overwrite_layer = T, check_exists = T, driver="ESRI Shapefile")
 }
