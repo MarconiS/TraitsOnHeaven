@@ -1,0 +1,95 @@
+Wed Aug 15 17:38:43 EDT 2018
+i21b-s3.ufhpc
+/ufrc/ewhite/s.marconi/Chapter1/AOP_from_coords/src
+
+Searching for an available X11 port number
+
+X11 port number '2854 has been selected
+Starting Xpra on port 2854 within SLURM job '23975132'
+
+TMPDIR: '/scratch/local/23975132'
+
+Command:  xpra start :2854 --exit-with-children --daemon=no --systemd-run=no --dbus-proxy=no --dbus-control=no  --start-child="rstudio --dpi=96"
+2018-08-15 17:38:45,646 cannot access python uinput module:
+2018-08-15 17:38:45,646  No module named uinput
+
+X.Org X Server 1.19.3
+Release Date: 2017-03-15
+X Protocol Version 11, Revision 0
+Build Operating System:  2.6.32-696.13.2.el6.x86_64 
+Current Operating System: Linux i21b-s3.ufhpc 3.10.0-693.17.1.el7.x86_64 #1 SMP Sun Jan 14 10:36:03 EST 2018 x86_64
+Kernel command line: BOOT_IMAGE=/vmlinuz-3.10.0-693.17.1.el7.x86_64 root=UUID=b3d59bda-15e6-40ee-ad12-2993d134b3fe ro max_loop=32 crashkernel=auto console=ttyS0,115200n8 console=tty0 pcie_aspm=off elevator=noop rd_NO_DM transparent_hugepage=never
+Build Date: 11 December 2017  04:29:14PM
+Build ID: xorg-x11-server 1.19.3-11.el7_4.1 
+Current version of pixman: 0.34.0
+	Before reporting problems, check http://wiki.x.org
+	to make sure that you have the latest version.
+Markers: (--) probed, (**) from config file, (==) default setting,
+	(++) from command line, (!!) notice, (II) informational,
+	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+(++) Log file: "/scratch/local/23975132/s.marconi/xpra/Xorg.:2854.log", Time: Wed Aug 15 17:38:45 2018
+(++) Using config file: "/etc/xpra/xorg.conf"
+(==) Using system config directory "/usr/share/X11/xorg.conf.d"
+2018-08-15 17:38:49,933 Warning: failed to create socket directory '/run/user/4055/xpra'
+2018-08-15 17:38:49,934  [Errno 2] No such file or directory: '/run/user/4055/xpra'
+2018-08-15 17:38:49,934 Warning: cannot create socket '/run/user/4055/xpra/i21b-s3.ufhpc-2854':
+2018-08-15 17:38:49,934  [Errno 2] No such file or directory
+2018-08-15 17:38:49,934  ($XDG_RUNTIME_DIR has not been created?)
+2018-08-15 17:38:49,936 created unix domain socket: /home/s.marconi/.xpra/i21b-s3.ufhpc-2854
+2018-08-15 17:38:49,937 Warning: cannot create socket '/run/xpra/i21b-s3.ufhpc-2854'
+2018-08-15 17:38:49,937  [Errno 13] Permission denied
+2018-08-15 17:38:49,937  user 's.marconi' is a member of groups: no groups!
+2018-08-15 17:38:49,937   missing 'xpra' group membership?
+2018-08-15 17:38:49,937   permissions on directory /run/xpra: 0775
+2018-08-15 17:38:49,937   ownership root:xpra
+2018-08-15 17:38:50,401 pointer device emulation using XTest
+2018-08-15 17:38:51,349 html server unavailable, cannot find websockify module
+2018-08-15 17:38:51,427 Warning: webcam forwarding is disabled
+2018-08-15 17:38:51,427  the virtual video directory '/sys/devices/virtual/video4linux' was not found
+2018-08-15 17:38:51,427  make sure that the 'v4l2loopback' kernel module is installed and loaded
+2018-08-15 17:38:51,427 found 0 virtual video devices for webcam forwarding
+2018-08-15 17:38:51,433 pulseaudio not started: 'pulseaudio' command not found
+2018-08-15 17:38:51,433 Error: failed to query sound subsystem:
+2018-08-15 17:38:51,433  No module named sound.common
+2018-08-15 17:38:51,434 D-Bus notification forwarding is available
+2018-08-15 17:38:51,457 started command 'rstudio' with pid 10071
+2018-08-15 17:38:51,458 xpra X11 version 2.2.6-r18968 64-bit
+2018-08-15 17:38:51,458  uid=4055 (s.marconi), gid=3533 (ewhite)
+2018-08-15 17:38:51,458  running with pid 9575 on Linux RedHatEnterpriseServer 7.4 Maipo
+2018-08-15 17:38:51,458  connected to X11 display :2854 with 24 bit colors
+2018-08-15 17:38:51,633 xpra is ready.
+2018-08-15 17:38:51,682 printer forwarding enabled using postscript and pdf
+2018-08-15 17:38:51,683 125.3GB of system memory
+load glyph failed err=6 face=0x1d598f0, glyph=4272
+load glyph failed err=6 face=0x1d598f0, glyph=4272
+2018-08-15 17:39:19,893 New unix-domain connection received on /home/s.marconi/.xpra/i21b-s3.ufhpc-2854
+2018-08-15 17:39:19,895 Handshake complete; enabling connection
+2018-08-15 17:39:19,907 Python/Gtk2 Mac OS X 17.7.0 client version 2.3.2-r19729 64-bit
+2018-08-15 17:39:19,907  connected from 'Sergios-MacBook-Pro.local' as 's.marconi' - 'Sergio Marconi'
+2018-08-15 17:39:19,908  automatic picture encoding enabled, also available:
+2018-08-15 17:39:19,908   h264, vp9, vp8, png, webp, rgb24, rgb32, jpeg
+2018-08-15 17:39:19,909  client root window size is 1680x1050 with 1 display:
+2018-08-15 17:39:19,909   sergios-macbook-pro.local (592x370 mm - DPI: 72x72) workarea: 1680x959 at 0x23
+2018-08-15 17:39:19,909     monitor 1
+2018-08-15 17:39:19,958 server virtual display now set to 1680x1050
+2018-08-15 17:39:19,989 setting keyboard layout to 'us'
+2018-08-15 17:39:20,043 DPI set to 72 x 72
+2018-08-15 17:39:20,069 client 1: Xpra X11 server version 2.2.6-r18968 64-bit
+2018-08-15 17:39:20,074 client 1:  running on Linux RedHatEnterpriseServer 7.4 Maipo
+2018-08-15 17:39:20,086 client 1: Attached to i21b-s3.rc.ufl.edu via ssh
+2018-08-15 17:39:20,086 client 1:  (press Control-C to detach)
+2018-08-15 17:39:20,645 New unix-domain connection received on /home/s.marconi/.xpra/i21b-s3.ufhpc-2854
+2018-08-15 17:39:21,193 Warning: failed to add printer Brother_HL_3140CW_series: [Errno 2] No such file or directory
+2018-08-15 17:39:21,216 Warning: failed to add printer _10_242_89_254: [Errno 2] No such file or directory
+setNativeLocks failed: Resource temporarily unavailable
+QApplication::qAppName: Please instantiate the QApplication object first
+setNativeLocks failed: Resource temporarily unavailable
+2018-08-15 17:52:02,731 child 'rstudio' with pid 10071 has terminated
+2018-08-15 17:52:02,732 all children have exited and --exit-with-children was specified, exiting
+2018-08-15 17:52:02,732 Disconnecting client Protocol(unix-domain socket:/home/s.marconi/.xpra/i21b-s3.ufhpc-2854):
+2018-08-15 17:52:02,733  server shutdown
+2018-08-15 17:52:02,733 xpra client 1 disconnected.
+2018-08-15 17:52:03,239 killing xvfb with pid 9745
+2018-08-15 17:52:03,245 removing socket /home/s.marconi/.xpra/i21b-s3.ufhpc-2854
+(II) Server terminated successfully (0). Closing log file.
+Wed Aug 15 17:52:03 EDT 2018

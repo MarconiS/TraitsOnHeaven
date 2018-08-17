@@ -1,0 +1,84 @@
+Sun Jul 22 14:19:01 EDT 2018
+i21a-s4.ufhpc
+/ufrc/ewhite/s.marconi/Chapter1/AOP_from_coords/src
+
+Searching for an available X11 port number
+
+X11 port number '2683 has been selected
+Starting Xpra on port 2683 within SLURM job '23014169'
+
+TMPDIR: '/scratch/local/23014169'
+
+Command:  xpra start :2683 --exit-with-children --daemon=no --systemd-run=no --dbus-proxy=no --dbus-control=no  --start-child="rstudio --dpi=96"
+2018-07-22 14:19:04,655 cannot access python uinput module:
+2018-07-22 14:19:04,655  No module named uinput
+
+X.Org X Server 1.19.3
+Release Date: 2017-03-15
+X Protocol Version 11, Revision 0
+Build Operating System:  2.6.32-696.13.2.el6.x86_64 
+Current Operating System: Linux i21a-s4.ufhpc 3.10.0-693.17.1.el7.x86_64 #1 SMP Sun Jan 14 10:36:03 EST 2018 x86_64
+Kernel command line: BOOT_IMAGE=/vmlinuz-3.10.0-693.17.1.el7.x86_64 root=UUID=de8f2b04-e0ca-4f4f-83f9-b2ccfe0c34aa ro max_loop=32 crashkernel=auto console=ttyS0,115200n8 console=tty0 pcie_aspm=off elevator=noop rd_NO_DM transparent_hugepage=never
+Build Date: 11 December 2017  04:29:14PM
+Build ID: xorg-x11-server 1.19.3-11.el7_4.1 
+Current version of pixman: 0.34.0
+	Before reporting problems, check http://wiki.x.org
+	to make sure that you have the latest version.
+Markers: (--) probed, (**) from config file, (==) default setting,
+	(++) from command line, (!!) notice, (II) informational,
+	(WW) warning, (EE) error, (NI) not implemented, (??) unknown.
+(++) Log file: "/scratch/local/23014169/s.marconi/xpra/Xorg.:2683.log", Time: Sun Jul 22 14:19:04 2018
+(++) Using config file: "/etc/xpra/xorg.conf"
+(==) Using system config directory "/usr/share/X11/xorg.conf.d"
+2018-07-22 14:19:08,641 Warning: failed to create socket directory '/run/user/4055/xpra'
+2018-07-22 14:19:08,641  [Errno 2] No such file or directory: '/run/user/4055/xpra'
+2018-07-22 14:19:08,641 Warning: cannot create socket '/run/user/4055/xpra/i21a-s4.ufhpc-2683':
+2018-07-22 14:19:08,641  [Errno 2] No such file or directory
+2018-07-22 14:19:08,642  ($XDG_RUNTIME_DIR has not been created?)
+2018-07-22 14:19:08,643 created unix domain socket: /home/s.marconi/.xpra/i21a-s4.ufhpc-2683
+2018-07-22 14:19:08,643 Warning: cannot create socket '/run/xpra/i21a-s4.ufhpc-2683'
+2018-07-22 14:19:08,643  [Errno 13] Permission denied
+2018-07-22 14:19:08,644  user 's.marconi' is a member of groups: no groups!
+2018-07-22 14:19:08,644   missing 'xpra' group membership?
+2018-07-22 14:19:08,644   permissions on directory /run/xpra: 0775
+2018-07-22 14:19:08,644   ownership root:xpra
+2018-07-22 14:19:08,966 pointer device emulation using XTest
+2018-07-22 14:19:09,502 html server unavailable, cannot find websockify module
+2018-07-22 14:19:09,561 Warning: webcam forwarding is disabled
+2018-07-22 14:19:09,561  the virtual video directory '/sys/devices/virtual/video4linux' was not found
+2018-07-22 14:19:09,561  make sure that the 'v4l2loopback' kernel module is installed and loaded
+2018-07-22 14:19:09,562 found 0 virtual video devices for webcam forwarding
+2018-07-22 14:19:09,566 pulseaudio not started: 'pulseaudio' command not found
+2018-07-22 14:19:09,566 Error: failed to query sound subsystem:
+2018-07-22 14:19:09,567  No module named sound.common
+2018-07-22 14:19:09,568 D-Bus notification forwarding is available
+2018-07-22 14:19:09,581 started command 'rstudio' with pid 29932
+2018-07-22 14:19:09,582 xpra X11 version 2.2.6-r18968 64-bit
+2018-07-22 14:19:09,582  uid=4055 (s.marconi), gid=3533 (ewhite)
+2018-07-22 14:19:09,582  running with pid 29431 on Linux RedHatEnterpriseServer 7.4 Maipo
+2018-07-22 14:19:09,582  connected to X11 display :2683 with 24 bit colors
+2018-07-22 14:19:09,701 printer forwarding enabled using postscript and pdf
+2018-07-22 14:19:09,701 125.3GB of system memory
+2018-07-22 14:19:09,701 xpra is ready.
+2018-07-22 14:19:38,843 New unix-domain connection received on /home/s.marconi/.xpra/i21a-s4.ufhpc-2683
+2018-07-22 14:19:38,844 Handshake complete; enabling connection
+2018-07-22 14:19:38,853 Python/Gtk2 Mac OS X 17.6.0 client version 2.3.2-r19729 64-bit
+2018-07-22 14:19:38,854  connected from 'ssrb-vpn1-0-78.vpn.ufl.edu' as 's.marconi' - 'Sergio Marconi'
+2018-07-22 14:19:38,854  automatic picture encoding enabled, also available:
+2018-07-22 14:19:38,854   h264, vp9, vp8, png, webp, rgb24, rgb32, jpeg
+2018-07-22 14:19:38,854  client root window size is 1920x1880 with 1 display:
+2018-07-22 14:19:38,855   ssrb-vpn1-0-78.vpn.ufl.edu (677x663 mm - DPI: 72x72)
+2018-07-22 14:19:38,855     monitor 1 1280x800 at 335x1080 (451x282 mm - DPI: 72x72) workarea: 1280x709 at 0x23
+2018-07-22 14:19:38,855     monitor 2 1920x1080 (677x381 mm - DPI: 72x72) workarea: 1920x1057 at 0x23
+2018-07-22 14:19:38,891 server virtual display now set to 1920x1920 (best match for 1920x1880)
+2018-07-22 14:19:38,913 setting keyboard layout to 'us'
+2018-07-22 14:19:38,943 DPI set to 72 x 72
+2018-07-22 14:19:39,243 client 1: Xpra X11 server version 2.2.6-r18968 64-bit
+2018-07-22 14:19:39,248 client 1:  running on Linux RedHatEnterpriseServer 7.4 Maipo
+2018-07-22 14:19:39,301 client 1: Attached to i21a-s4.rc.ufl.edu via ssh
+2018-07-22 14:19:39,301 client 1:  (press Control-C to detach)
+2018-07-22 14:19:39,592 New unix-domain connection received on /home/s.marconi/.xpra/i21a-s4.ufhpc-2683
+2018-07-22 14:19:40,408 Warning: failed to add printer Brother_HL_3140CW_series: [Errno 2] No such file or directory
+2018-07-22 14:19:40,426 Warning: failed to add printer _10_242_89_254: [Errno 2] No such file or directory
+2018-07-22 17:15:52,434 xpra client 1 disconnected.
+slurmstepd: error: *** JOB 23014169 ON i21a-s4 CANCELLED AT 2018-07-22T22:19:11 DUE TO TIME LIMIT ***
