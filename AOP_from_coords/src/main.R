@@ -55,12 +55,12 @@ for(NeonSites in unique(dataset$siteID)){
     chm_f <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
                    "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
     
-    crownITC(pt, wd = wd, pattern = paste(tileID[,1], "_", tileID[,2], sep=""), epsg = epsg, cores = 64, chm_f = chm_f, 
+    crownITC(pt, wd = wd, pattern = paste(tileID[,1], "_", tileID[,2], sep=""), epsg = epsg, cores = 32, chm_f = chm_f, 
              pybin = "/Users/sergiomarconi/anaconda3/bin/")
     hps_f = list.files(f_path)
     
     #hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
-    extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 1)
+    extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
   },error=function(e){})
   
 }
