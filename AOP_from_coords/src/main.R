@@ -17,6 +17,8 @@ get_epsg_from_utm <- function(utm){
 
 wd = "./AOP_from_coords/"
 inputs <- "./TOS_Retriever/out/utm_dataset.csv"
+
+inputs <- "./AOP_from_coords/inputs/missing_crowns.csv"
 options(scipen=999)
 
 library(readr)
