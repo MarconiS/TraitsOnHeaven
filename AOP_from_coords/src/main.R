@@ -58,7 +58,8 @@ for(NeonSites in unique(dataset$siteID)){
                    "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
     
     crownITC(pt, wd = wd, pattern = paste(tileID[,1], "_", tileID[,2], sep=""), epsg = epsg, cores = 32, chm_f = chm_f, 
-             pybin = "/Users/sergiomarconi/anaconda3/bin/")
+             pybin = "/home/s.marconi/.conda/envs/quetzal3/bin") 
+             #pybin = "/Users/sergiomarconi/anaconda3/bin/")
     hps_f = list.files(f_path)
     
     #hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
