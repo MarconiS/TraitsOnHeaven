@@ -41,6 +41,8 @@ for(NeonSites in unique(dataset$siteID)){
     
     if(NeonSites %in% c( "GRSM", "ORNL")){
       year <- 2016
+    }else{
+      year <- 2017
     }
     tileID <- unique(cbind(as.character(as.integer(centroids$easting/1000)*1000), 
                            as.character(as.integer(centroids$northing/1000)*1000)))
