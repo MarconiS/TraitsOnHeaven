@@ -22,6 +22,6 @@ get_itcs_in_tile <- function(hps_fi = NULL, centroids = NULL, f_path = NULL, Neo
   mask.x <- (centroids$easting < xMax-buffer) & (centroids$easting > buffer + xMin)
   mask.y <- (centroids$northing < yMax-buffer) & (centroids$northing > yMin+buffer)
   itcextract <- centroids[mask.x & mask.y,]
-  h5closeAll()
+  #h5closeAll()
   return(itcextract)
 }
