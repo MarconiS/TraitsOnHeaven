@@ -1,4 +1,4 @@
-crownITC <- function(pt = NULL,wd = NULL, pattern, cores = 2,pybin = "/home/s.marconi/.conda/envs/quetzal3/bin", epsg=NULL, chm_f = NULL){
+crownITC <- function(pt = NULL,wd = NULL, pttrn, cores = 2,pybin = "/home/s.marconi/.conda/envs/quetzal3/bin", epsg=NULL, chm_f = NULL){
   library(foreach)
   library(doParallel)
   registerDoSEQ()
@@ -6,11 +6,11 @@ crownITC <- function(pt = NULL,wd = NULL, pattern, cores = 2,pybin = "/home/s.ma
   registerDoParallel(cl)
   clusterCall(cl, function(x) .libPaths(x), .libPaths())
   
-  results <- foreach(i = pattern) %dopar% {
+  results <- foreach(i = pttrn) %dopar% {
     #for(i in pattern){
     library(raster)
     library(lidR)
-    source(paste(wd, "src/polygonize.R", sep=""))
+    #source(paste(wd, "src/polygonize.R", sep=""))
     #tryCatch({
       if(!length(list.files(paste(wd, "/outputs/itcShp/", sep=""), pattern=i))>0){
         f = list.files(pt, pattern = i)
