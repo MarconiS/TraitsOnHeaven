@@ -34,7 +34,8 @@ crownITC <- function(pt = NULL,wd = NULL, pattern, cores = 2,pybin = "/home/s.ma
                                 mv = 7, minh = 7, extra = T)
         Sys.setenv(PATH = paste(pybin, Sys.getenv("PATH"),sep=":"))
         
-        x <- gdal_polygonizeR(crowns, pypath = paste(wd, "src/polygonize/", sep=""), raspath = paste(wd, "tmp/", sep=""))
+        x <- gdal_polygonizeR(crowns, pypath = "/ufrc/ewhite/s.marconi/TraitsOnHeaven/AOP_from_coords/src/polygonize", 
+                              raspath = "/ufrc/ewhite/s.marconi/TraitsOnHeaven/AOP_from_coords/tmp")
         proj4string(x) <-  CRS(paste("+init=epsg:", epsg, sep=""))
         writeOGR(x, dsn=paste(wd,"outputs/itcShp/", sep=""), paste(i, "silva", sep="_"), overwrite_layer = T, check_exists = T, driver="ESRI Shapefile")
         print(i)
