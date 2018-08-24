@@ -34,7 +34,7 @@ colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domai
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 
 for(NeonSites in unique(dataset$siteID)){
-  tryCatch({
+  #tryCatch({
     centroids <- dataset[dataset$siteID %in% NeonSites,] %>%
       unique
     year <- unlist(strsplit(as.character(unique(dataset$collectDate)), split = "-"))[1]
@@ -65,6 +65,6 @@ for(NeonSites in unique(dataset$siteID)){
     
     #hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
     extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 64)
-  },error=function(e){})
+  #},error=function(e){})
   
 }
