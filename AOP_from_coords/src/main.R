@@ -64,7 +64,8 @@ for(NeonSites in unique(dataset$siteID)){
     hps_f = list.files(f_path)
     
     #hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
+    if(NeonSites != "GRSM"){
     extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
   #},error=function(e){})
-  
+    }
 }
