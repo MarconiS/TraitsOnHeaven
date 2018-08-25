@@ -22,14 +22,14 @@ extract_crown_data <- function(centroids, hps_f, f_path, chm_f, epsg, wd,NeonSit
   
   for(z in 1:length(clean_hps)){ 
     
-    # registerDoSEQ()
-    # cl <- makeCluster(cores)
-    # registerDoParallel(cl)
-    # clusterCall(cl, function(x) .libPaths(x), .libPaths())
-    
+    registerDoSEQ()
+    cl <- makeCluster(cores)
+    registerDoParallel(cl)
+    clusterCall(cl, function(x) .libPaths(x), .libPaths())
+
     #results <- foreach(z = clean_hps, .combine = 'cbind', .verbose = T) %:%
-    #results <- foreach(mm = 1:cr_per_path[z], .verbose = T) %dopar% {
-    for(mm in 1:cr_per_path[z]){
+    results <- foreach(mm = 1:cr_per_path[z], .verbose = T) %dopar% {
+    #for(mm in 1:cr_per_path[z]){
       source(paste(wd, "src/polygonize.R", sep=""))
       source(paste(wd, "src/extract_data.R", sep=""))
       source(paste(wd, "src/get_itcs_in_tile.R", sep=""))
@@ -47,7 +47,7 @@ extract_crown_data <- function(centroids, hps_f, f_path, chm_f, epsg, wd,NeonSit
       print(paste(mm, z, clean_hps[z]))
       },error=function(e){})
     }
-    #stopCluster(cl)
+    stopCluster(cl)
   }
   #return(results)
 } 
