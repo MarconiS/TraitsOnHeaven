@@ -6,7 +6,7 @@
 #SBATCH --qos=ewhite-b
 
 #SBATCH --ntasks=1                 # Number of MPI ranks
-#SBATCH --cpus-per-task=64            # Number of cores per MPI rank
+#SBATCH --cpus-per-task=32            # Number of cores per MPI rank
 #SBATCH --mem=250000
 
 #SBATCH --time=36:00:00       #Time limit hrs:min:sec
