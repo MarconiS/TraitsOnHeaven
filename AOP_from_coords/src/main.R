@@ -18,7 +18,7 @@ get_epsg_from_utm <- function(utm){
 wd = "./AOP_from_coords/"
 inputs <- "./TOS_Retriever/out/utm_dataset.csv"
 
-inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
+#inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
 
 library(readr)
@@ -31,8 +31,8 @@ dataset <- read_csv(inputs) %>%
   dplyr::select(individualID, taxonID.x, collectDate, siteID.x, plotID.x, domainID.x, utmZone, UTM_E, UTM_N) %>%
   unique
 colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domainID", "utmZone","easting", "northing")
-#dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
-dataset <- dataset[!dataset$siteID=="MLBS",]
+dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
+#dataset <- dataset[!dataset$siteID=="MLBS",]
 
 for(NeonSites in unique(dataset$siteID)){
   #tryCatch({
