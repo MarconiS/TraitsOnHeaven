@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 argument_values = commandArgs(trailingOnly = FALSE)
-print(args)
-
+print(argument_values)
 # pt <- paste("//orange/ewhite/NeonData/", unique(centroids$siteID),"/DP1.30003.001/",year, "/FullSite/", unique(centroids$domainID), "/", 
 #             year, "_", unique(centroids$siteID), "/L1/DiscreteLidar/Classified_point_cloud/", sep="")
 # f_path <- paste("//orange/ewhite/NeonData/", unique(centroids$siteID),"/DP1.30006.001/",year, "/FullSite/", unique(centroids$domainID), "/", 
