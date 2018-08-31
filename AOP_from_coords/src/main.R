@@ -9,8 +9,6 @@ print(argument_values)
 #             year, "_", unique(centroids$siteID), "/L3/DiscreteLidar/CHM/", sep="")
 # 
 
-rm(list=ls())
-
 get_epsg_from_utm <- function(utm){
   dictionary <- cbind(32616, 32615, 32617, 32617, 32616, 32616, 32612, 32613, 32617, 32617) 
   colnames(dictionary) <- c("STEI", "CHEQ", "SCBI", "GRSM", "ORNL", "TALL", "MOAB", "JORN", "OSBS", "MLBS")
@@ -40,37 +38,37 @@ NeonSites = argument_values[6]
 
 # for(NeonSites in unique(dataset$siteID)){
 #   #tryCatch({
-#     centroids <- dataset[dataset$siteID %in% NeonSites,] %>%
-#       unique
-#     year <- unlist(strsplit(as.character(unique(dataset$collectDate)), split = "-"))[1]
-#     
-#     if(NeonSites %in% c( "GRSM", "ORNL")){
-#       year <- 2016
-#     }else{
-#       year <- 2017
-#     }
-#     tileID <- unique(cbind(as.character(as.integer(centroids$easting/1000)*1000), 
-#                            as.character(as.integer(centroids$northing/1000)*1000)))
-#     
-#     epsg <- get_epsg_from_utm(unique(centroids$siteID))
-# 
-#     pt <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/", 
-#                 "/", year,"_", NeonSites, "/", "L1/DiscreteLidar/ClassifiedPointCloud/", sep="")
-#     f_path <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30006.001/", year, "/FullSite/", unique(centroids$domainID), "/", 
-#                     "/", year,"_", NeonSites,"/", "L1/Spectrometer/H5/", sep="")
-#     
-#     chm_f <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
-#                    "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
-#     
-#     crownITC(pt, wd = wd, pttrn = paste(tileID[,1], "_", tileID[,2], sep=""), 
-#              epsg = epsg, cores = 64, chm_f = chm_f, 
-#              pybin = "/home/s.marconi/.conda/envs/quetzal3/bin") 
-#              #pybin = "/Users/sergiomarconi/anaconda3/bin/")
-#     hps_f = list.files(f_path)
-#     
-#     #hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
-#     if(NeonSites != "GRSM"){
-#     extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
-#   #},error=function(e){})
-#     }
+centroids <- dataset[dataset$siteID %in% NeonSites,] %>%
+  unique
+year <- unlist(strsplit(as.character(unique(dataset$collectDate)), split = "-"))[1]
+
+if(NeonSites %in% c( "GRSM", "ORNL")){
+  year <- 2016
+}else{
+  year <- 2017
+}
+tileID <- unique(cbind(as.character(as.integer(centroids$easting/1000)*1000),
+                       as.character(as.integer(centroids$northing/1000)*1000)))
+
+epsg <- get_epsg_from_utm(unique(centroids$siteID))
+
+pt <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
+            "/", year,"_", NeonSites, "/", "L1/DiscreteLidar/ClassifiedPointCloud/", sep="")
+f_path <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30006.001/", year, "/FullSite/", unique(centroids$domainID), "/",
+                "/", year,"_", NeonSites,"/", "L1/Spectrometer/H5/", sep="")
+
+chm_f <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
+               "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
+
+crownITC(pt, wd = wd, pttrn = paste(tileID[,1], "_", tileID[,2], sep=""),
+         epsg = epsg, cores = 64, chm_f = chm_f,
+         pybin = "/home/s.marconi/.conda/envs/quetzal3/bin")
+#pybin = "/Users/sergiomarconi/anaconda3/bin/")
+hps_f = list.files(f_path)
+
+#hps_f = NULL, f_path = NULL, chm_f = NULL, epsg=NULL, buffer = 20, cores = 2
+if(NeonSites != "GRSM"){
+  extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
+  #   #},error=function(e){})
+}
 # }
