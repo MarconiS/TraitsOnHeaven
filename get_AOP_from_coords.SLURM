@@ -18,7 +18,7 @@ pwd; hostname; date
 ml R/3.4.3 conda
 source activate quetzal3
 echo "grepping data from tiles"
-Rscript --default-packages=stats,utils,datasets,base,methods  ./AOP_from_coords/src/main.R
+Rscript --default-packages=stats,utils,datasets,base,methods  ./AOP_from_coords/src/main.R $1
 echo "done"
 
 date
