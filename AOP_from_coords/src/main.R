@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-args = commandArgs(trailingOnly = FALSE)
+argument_values = commandArgs(trailingOnly = FALSE)
 print(args)
 
 # pt <- paste("//orange/ewhite/NeonData/", unique(centroids$siteID),"/DP1.30003.001/",year, "/FullSite/", unique(centroids$domainID), "/", 
@@ -37,7 +37,7 @@ colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domai
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 #dataset <- dataset[!dataset$siteID=="MLBS",]
 
-NeonSites = args[5]
+NeonSites = argument_values[6]
 
 # for(NeonSites in unique(dataset$siteID)){
 #   #tryCatch({
