@@ -37,7 +37,7 @@ colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domai
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 #dataset <- dataset[!dataset$siteID=="MLBS",]
 
-NeonSites = args[7]
+NeonSites = args[5]
 
 # for(NeonSites in unique(dataset$siteID)){
 #   #tryCatch({
