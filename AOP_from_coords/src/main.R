@@ -10,15 +10,15 @@
 rm(list=ls())
 
 get_epsg_from_utm <- function(utm){
-  dictionary <- cbind(32616, 32615, 32617, 32617, 32616, 32616, 32612, 32613, 32617) 
-  colnames(dictionary) <- c("STEI", "CHEQ", "SCBI", "GRSM", "ORNL", "TALL", "MOAB", "JORN", "OSBS")
+  dictionary <- cbind(32616, 32615, 32617, 32617, 32616, 32616, 32612, 32613, 32617, 32617) 
+  colnames(dictionary) <- c("STEI", "CHEQ", "SCBI", "GRSM", "ORNL", "TALL", "MOAB", "JORN", "OSBS", "MLBS")
   return(dictionary[colnames(dictionary)==utm])
 }
 
 wd = "./AOP_from_coords/"
 inputs <- "./TOS_Retriever/out/utm_dataset.csv"
 
-inputs <- "./AOP_from_coords/inputs/missing_crowns.csv"
+inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
 
 library(readr)
@@ -31,7 +31,8 @@ dataset <- read_csv(inputs) %>%
   dplyr::select(individualID, taxonID.x, collectDate, siteID.x, plotID.x, domainID.x, utmZone, UTM_E, UTM_N) %>%
   unique
 colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domainID", "utmZone","easting", "northing")
-dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
+#dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
+dataset <- dataset[!dataset$siteID=="MLBS",]
 
 for(NeonSites in unique(dataset$siteID)){
   #tryCatch({
