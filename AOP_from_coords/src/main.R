@@ -16,9 +16,9 @@ get_epsg_from_utm <- function(utm){
 }
 
 wd = "./AOP_from_coords/"
-inputs <- "./TOS_retriever/out/field_data.csv"
+inputs <- "./TOS_retriever/out/utm_dataset.csv"
 
-#inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
+inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
 
 library(readr)
@@ -28,7 +28,7 @@ source(paste(wd, "src/extract_data.R", sep=""))
 source(paste(wd, "src/extract_crown_data.R", sep=""))
 
 dataset <- read_csv(inputs) %>%
-  dplyr::select(individualID, taxonID,  siteID, plotID, domainID, utmZone, UTM_E, UTM_N) %>%
+  dplyr::select(individualID, taxonID.x, collectDate, siteID.x, plotID.x, domainID.x, utmZone, UTM_E, UTM_N) %>%
   unique
 colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domainID", "utmZone","easting", "northing")
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
