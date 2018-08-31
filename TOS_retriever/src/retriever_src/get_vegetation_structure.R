@@ -7,9 +7,13 @@ get_vegetation_structure <- function(){
              "nestedSubplotID","pointID","stemDistance","stemAzimuth",
              "cfcOnlyTag","individualID","supportingStemIndividualID","previouslyTaggedAs",
              "taxonID","scientificName"))
+  pointID <- readr::read_csv("./TOS_retriever/dat/pointID_scheme.csv")
   dat = inner_join(file_mapping,file_tos_coordinates,  by = "plotID") %>%
+    inner_join(pointID,  by = "pointID") %>%
     drop_na(stemAzimuth) %>%
     unique
+  dat$easting = dat$easting + dat$easting_offset
+  dat$northing = dat$northing + dat$northing_offset
   
   # get tree coordinates
   dat_apply <- dat %>%
