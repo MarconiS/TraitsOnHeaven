@@ -1,20 +1,17 @@
 get_vegetation_structure <- function(){
-  file_tos_coordinates = read_csv("./TOS_Retriever/tmp/filesToStack10098/stackedFiles/vst_perplotperyear.csv") %>%
-    dplyr::select(c("plotID","plotType", "utmZone", "easting", "northing", "coordinateUncertainty", "nlcdClass", "elevation"))
-  
   file_mapping = read_csv("./TOS_Retriever/tmp/filesToStack10098/stackedFiles/vst_mappingandtagging.csv") %>%
     dplyr::select(c("uid", "eventID", "domainID","siteID","plotID","subplotID",
              "nestedSubplotID","pointID","stemDistance","stemAzimuth",
              "cfcOnlyTag","individualID","supportingStemIndividualID","previouslyTaggedAs",
              "taxonID","scientificName"))
-  pointID <- readr::read_csv("./TOS_retriever/dat/pointID_scheme.csv")
-  dat = inner_join(file_mapping,file_tos_coordinates,  by = "plotID") %>%
-    inner_join(pointID,  by = "pointID") %>%
-    drop_na(stemAzimuth) %>%
-    unique
-  dat$easting = dat$easting + dat$easting_offset
-  dat$northing = dat$northing + dat$northing_offset
   
+  plots<-sf::st_read("./TOS_Retriever/dat/All_Neon_TOS_Points_V5.shp")  %>% filter(str_detect(appMods,"vst"))
+  dat<-file_mapping %>% 
+    mutate(pointID=factor(pointID, levels = levels(plots$pointID))) %>% 
+    mutate(plotID=factor(plotID, levels = levels(plots$plotID))) %>% 
+    left_join(plots,by=c("plotID","pointID"))
+  
+  dat <- dat[!is.na(dat$stemAzimuth), ]
   # get tree coordinates
   dat_apply <- dat %>%
     dplyr::select(c(stemDistance, stemAzimuth, easting, northing)) 
