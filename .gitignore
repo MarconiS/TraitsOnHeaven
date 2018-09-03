@@ -7,3 +7,8 @@ outputs/*
 general_inputs/*
 general_outputs/*
 .DS_Store
+*.prj
+*.dbf
+*.shx
+*.shp
+*.tif

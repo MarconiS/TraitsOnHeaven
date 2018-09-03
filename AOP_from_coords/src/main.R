@@ -18,7 +18,7 @@ get_epsg_from_utm <- function(utm){
 wd = "./AOP_from_coords/"
 inputs <- "./TOS_retriever/out/utm_dataset.csv"
 
-inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
+#inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
 
 library(readr)
@@ -30,6 +30,7 @@ source(paste(wd, "src/extract_crown_data.R", sep=""))
 dataset <- read_csv(inputs) %>%
   dplyr::select(individualID, taxonID.x, collectDate, siteID.x, plotID.x, domainID.x, utmZone, UTM_E, UTM_N) %>%
   unique
+dataset <- dataset[!is.na(dataset$UTM_E),]
 colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domainID", "utmZone","easting", "northing")
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 #dataset <- dataset[!dataset$siteID=="MLBS",]
@@ -61,10 +62,10 @@ chm_f <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, 
                "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
 
 crownITC(pt, wd = wd, pttrn = paste(tileID[,1], "_", tileID[,2], sep=""),
-         epsg = epsg, cores = 64, chm_f = chm_f,
+         epsg = epsg, cores = 18, chm_f = chm_f,
          pybin = "/home/s.marconi/.conda/envs/quetzal3/bin")
 #pybin = "/Users/sergiomarconi/anaconda3/bin/")
 hps_f = list.files(f_path)
 extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, 
-                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
+                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 18)
 
