@@ -12,3 +12,6 @@ general_outputs/*
 *.shx
 *.shp
 *.tif
+*.csv
+*.out
+*.out

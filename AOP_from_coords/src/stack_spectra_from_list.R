@@ -31,8 +31,8 @@ stack_spectra = function(f_pt =  "./AOP_from_coords/outputs/outputs/Spectra/"){
       warning(paste(f, "is an empty file"))
     }
   }
-  write_csv(f0, "./AOP_from_coords/outputs/neon_spectra.csv")
-  write_csv(f0, "/ufrc/ewhite/s.marconi/Chapter1/jMIR/data/spectra/buffered_features.csv")
+  write_csv(f0, "./AOP_from_coords/outputs/itc_neon_spectra.csv")
+  write_csv(f0, "/ufrc/ewhite/s.marconi/Chapter1/jMIR/data/spectra/itc_features.csv")
   return(f0)
 }
 

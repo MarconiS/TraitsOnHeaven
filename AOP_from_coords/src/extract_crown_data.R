@@ -10,7 +10,12 @@ extract_crown_data <- function(centroids, hps_f, f_path, chm_f, epsg, wd,NeonSit
   
   cr_per_path <- rep(NA, length(hps_f))
   for(ii in 1:length(hps_f)){
-    cr_per_path[ii] <- dim(get_itcs_in_tile(hps_f[ii], centroids=centroids, NeonSites = NeonSites, f_path=f_path))[1]
+    cr_per_path[ii] <- tryCatch(
+     {dim(get_itcs_in_tile(hps_f[ii], centroids=centroids, NeonSites = NeonSites, f_path=f_path))[1]},
+     error=function(cond){
+       message(paste("hiperspectral flight path corrupted or incoplete:", ii))
+       return(0)
+     })
   }
   #cr_per_path <- lapply(hps_f, get_number_itcs_in_tile, centroids=centroids, f_path=f_path)
   #cr_per_path<-unlist(cr_per_path)
