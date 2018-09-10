@@ -11,7 +11,7 @@ crownITC <- function(pt = NULL,wd = NULL, pttrn, cores = 2,pybin = "/home/s.marc
     library(raster)
     library(lidR)
     source(paste(wd, "src/polygonize.R", sep=""))
-    #tryCatch({
+    tryCatch({
       if(!length(list.files(paste(wd, "/outputs/itcShp/", sep=""), pattern=i))>0){
         f = list.files(pt, pattern = i)
         
@@ -42,7 +42,7 @@ crownITC <- function(pt = NULL,wd = NULL, pttrn, cores = 2,pybin = "/home/s.marc
       }else{
         print("tile exists")
       }
-   # },error=function(e){})
+    },error=function(e){message(paste(i,"resulted in", f, ": error!"))})
   }
   stopCluster(cl)
   return(results)
