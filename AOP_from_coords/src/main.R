@@ -16,7 +16,7 @@ get_epsg_from_utm <- function(utm){
 }
 
 wd = "./AOP_from_coords/"
-inputs <- "./TOS_retriever/out/utm_dataset.csv"
+inputs <- "./TOS_retriever/out/field_data.csv"
 
 #inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
@@ -28,10 +28,11 @@ source(paste(wd, "src/extract_data.R", sep=""))
 source(paste(wd, "src/extract_crown_data.R", sep=""))
 
 dataset <- read_csv(inputs) %>%
-  dplyr::select(individualID, taxonID.x, collectDate, siteID.x, plotID.x, domainID.x, utmZone, UTM_E, UTM_N) %>%
+  dplyr::select(individualID, taxonID, siteID, domainID,eventID, utmZone, stemDiameter, height, maxCrownDiameter, UTM_E, UTM_N) %>%
   unique
+
 dataset <- dataset[!is.na(dataset$UTM_E),]
-colnames(dataset) <-  c("treeID","taxaID","collectDate","siteID","plotID","domainID", "utmZone","easting", "northing")
+colnames(dataset)[colnames(dataset) %in% c("UTM_E", "UTM_N")] <-  c("easting", "northing")
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 #dataset <- dataset[!dataset$siteID=="MLBS",]
 
@@ -41,8 +42,8 @@ NeonSites = argument_values[6]
 #   #tryCatch({
 centroids <- dataset[dataset$siteID %in% NeonSites,] %>%
   unique
-year <- unlist(strsplit(as.character(unique(dataset$collectDate)), split = "-"))[1]
-
+#year <- unlist(strsplit(as.character(unique(dataset$eventID)), split = "_"))[3]
+year = 2017
 if(NeonSites %in% c( "GRSM", "ORNL")){
   year <- 2016
 }else{
@@ -67,5 +68,5 @@ crownITC(pt, wd = wd, pttrn = paste(tileID[,1], "_", tileID[,2], sep=""),
 #pybin = "/Users/sergiomarconi/anaconda3/bin/")
 hps_f = list.files(f_path)
 extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, 
-                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 18)
+                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
 
