@@ -18,7 +18,7 @@ extract_crown_data <- function(centroids, hps_f, f_path, chm_f, epsg, wd,NeonSit
      })
   }
   #cr_per_path <- lapply(hps_f, get_number_itcs_in_tile, centroids=centroids, f_path=f_path)
-  #cr_per_path<-unlist(cr_per_path)
+  #cr_per_path<-unlist(cr_per_path)w
   #remove paths with no data
   clean_hps <- hps_f[cr_per_path>0]
   cr_per_path <- cr_per_path[cr_per_path>0]  
