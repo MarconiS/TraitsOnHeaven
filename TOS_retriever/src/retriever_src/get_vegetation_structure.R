@@ -9,7 +9,7 @@ get_vegetation_structure <- function(){
   dat<-file_mapping %>% 
     mutate(pointID=factor(pointID, levels = levels(plots$pointID))) %>% 
     mutate(plotID=factor(plotID, levels = levels(plots$plotID))) %>% 
-    left_join(plots,by=c("plotID","pointID"))
+    left_join(plots)
   
   dat <- dat[!is.na(dat$stemAzimuth), ]
   # get tree coordinates
@@ -27,7 +27,7 @@ get_vegetation_structure <- function(){
     group_by(individualID) %>%
     summarise_all(funs(max))
   
-  crown_attributes = left_join(field_tag, apparent, by="individualID") %>%
+  crown_attributes = left_join(field_tag, apparent) %>%
     unique
   
   write_csv(field_tag, './TOS_Retriever/out/field_data_no_attribute.csv')

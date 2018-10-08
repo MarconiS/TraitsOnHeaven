@@ -21,7 +21,7 @@ retrieve_field_data <- function(){
   
   #harmonize the three data products to make a single database
   stack_chemical_leaf_products(10026)
-  stack_isotopes_leaf_products(10053)
+  #stack_isotopes_leaf_products(10053)
   
   # get coordinates and position of the vegetation structure trees
   get_vegetation_structure()

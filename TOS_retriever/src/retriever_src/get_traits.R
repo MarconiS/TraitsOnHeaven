@@ -2,18 +2,18 @@
 stack_chemical_leaf_products <- function(prd=NULL){
   # now, harmonize the traits data.
   product_name = list.files(paste("./TOS_Retriever/tmp/filesToStack", prd,"/stackedFiles", sep=""))
-  product_name = product_name[-which(product_name %in% c("validation.csv", "variables.csv"))]
+  product_name = product_name[-which(product_name %in% c("validation.csv", "variables.csv", "cfc_chemistrySubsampling.csv"))]
   final_traits_data = read_csv(paste("./TOS_Retriever/tmp/filesToStack", prd,"/stackedFiles/", product_name[1], sep=""))
-  for(ff in product_name[-1]){
-    product_data = read_csv(paste("./TOS_Retriever/tmp/filesToStack", prd,"/stackedFiles/",ff, sep=""))
+  for(ff in product_name[-(1)]){
+    product_data = read_csv(paste("./TOS_Retriever/tmp/filesToStack", prd,"/stackedFiles/",ff, sep="")) 
+    product_data = dplyr::select(product_data, "sampleID", contains("individualID"), 
+         colnames(product_data)[sapply(product_data, class)=="numeric"])
     colnames(product_data)[which(colnames(product_data) %in% "dryMass")]<- 
       paste(gsub('.{4}$', '', ff), "_dryWeight", sep="")
     colnames(product_data)[which(colnames(product_data) %in% "freshMass")]<- 
       paste(gsub('.{4}$', '', ff), "_freshWeight", sep="")
     final_traits_data = inner_join(product_data, final_traits_data, by = "sampleID")
   }
-  final_traits_data <- final_traits_data[, -grep(".x.x", colnames(final_traits_data))]  
-  final_traits_data <- final_traits_data[, -grep(".y", colnames(final_traits_data))]  
   write_csv(final_traits_data, './TOS_Retriever/out/chemical_data.csv')                          
 }
 
