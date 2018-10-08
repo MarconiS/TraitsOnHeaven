@@ -31,25 +31,25 @@ itcExtract <- function(x, f, chm, itc.f, epsg, token, wd,pybin = "/home/s.marcon
   
   datExtract <- over(centDat, itc_shp)
   if(is.na(datExtract)){
-    print("not really")
-    dist <- gDistance(centDat, itc_shp,byid=TRUE)
-    datDist <-which(dist==min(dist))
-    area = 0
-    for(pp  in 1:length(datDist)){
-      #check which polygon at the same distance has the greatest area
-      foo <- itc_shp[datDist[pp],]
-      afoo <-  unlist(lapply(foo@polygons, function(x) slot(x, "area")))
-      if(afoo>=area){
-        area = max(area,afoo)
-        datExtract <- foo
-      }
-    }
-    itc_spectra <- extract(clip,datExtract)
-    write_csv(as.data.frame(itc_spectra), paste(wd,'outputs/Spectra/',entryID, ".csv", sep=""))
+    # print("not really")
+    # dist <- gDistance(centDat, itc_shp,byid=TRUE)
+    # datDist <-which(dist==min(dist))
+    # area = 0
+    # for(pp  in 1:length(datDist)){
+    #   #check which polygon at the same distance has the greatest area
+    #   foo <- itc_shp[datDist[pp],]
+    #   afoo <-  unlist(lapply(foo@polygons, function(x) slot(x, "area")))
+    #   if(afoo>=area){
+    #     area = max(area,afoo)
+    #     datExtract <- foo
+    #   }
+    # }
+    # itc_spectra <- extract(clip,datExtract)
+    # write_csv(as.data.frame(itc_spectra), paste(wd,'outputs/Spectra/',entryID, ".csv", sep=""))
   }else{
     #extract infor from that clump
     datExtract<- itc_shp[which(itc_shp$DN==datExtract$DN),]
-    for(pp  in 1:length(datExtract)){
+    for(pp in 1:length(datExtract)){
       #check which polygon at the same distance has the greatest area
       foo <- datExtract[pp,]
       afoo <- over(centDat, foo)
@@ -58,10 +58,10 @@ itcExtract <- function(x, f, chm, itc.f, epsg, token, wd,pybin = "/home/s.marcon
       }
     }
     datExtract<-ffoo
-    itc_spectra <- extract(clip, datExtract)
+    #itc_spectra <- extract(clip, datExtract)
   }
   writeOGR(datExtract, paste(wd,'outputs/itcID/', sep = ""), entryID,  driver="ESRI Shapefile", overwrite_layer = T)
-  write_csv(as.data.frame(itc_spectra), paste(wd,'outputs/Spectra/',entryID, ".csv", sep=""))
+  #write_csv(as.data.frame(itc_spectra), paste(wd,'outputs/Spectra/',entryID, ".csv", sep=""))
   
 }
 
