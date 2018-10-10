@@ -16,7 +16,7 @@ get_epsg_from_utm <- function(utm){
 }
 
 wd = "./AOP_from_coords/"
-inputs <- "./TOS_retriever/out/field_data.csv"
+inputs <- "./TOS_retriever/out/utm_dataset.csv"
 
 #inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
