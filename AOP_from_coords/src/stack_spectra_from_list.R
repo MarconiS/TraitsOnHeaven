@@ -1,4 +1,4 @@
-stack_spectra = function(f_pt =  "./AOP_from_coords/outputs/outputs/Spectra/"){
+stack_spectra = function(f_pt =  "~/Documents/Data/buffer_spectra//"){
   library(readr)
   library(tidyverse)
   files_to_stack <- list.files(f_pt, pattern = "csv")
@@ -31,8 +31,8 @@ stack_spectra = function(f_pt =  "./AOP_from_coords/outputs/outputs/Spectra/"){
       warning(paste(f, "is an empty file"))
     }
   }
-  write_csv(f0, "./AOP_from_coords/outputs/itc_neon_spectra.csv")
-  write_csv(f0, "/ufrc/ewhite/s.marconi/Chapter1/jMIR/data/spectra/itc_features.csv")
+  write_csv(f0, "./AOP_from_coords/outputs/buffer_l3_spectra.csv")
+  write_csv(f0, "./ufrc/ewhite/s.marconi/Chapter1/jMIR/data/spectra/buffer_features.csv")
   return(f0)
 }
 

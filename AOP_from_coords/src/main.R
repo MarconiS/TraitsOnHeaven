@@ -17,7 +17,7 @@ get_epsg_from_utm <- function(utm){
 
 wd = "./AOP_from_coords/"
 inputs <- "./TOS_retriever/out/utm_dataset.csv"
-
+#inputs <- "./TOS_retriever/out/missing_utm.csv"
 #inputs <- "./AOP_from_coords/inputs/Dimensions_centroids.csv"
 options(scipen=999)
 
@@ -28,14 +28,14 @@ source(paste(wd, "src/extract_data.R", sep=""))
 source(paste(wd, "src/extract_crown_data.R", sep=""))
 
 dataset <- read_csv(inputs) %>%
-  dplyr::select(individualID, taxonID, siteID, domainID,eventID, utmZone, stemDiameter, height, maxCrownDiameter, UTM_E, UTM_N) %>%
+  dplyr::select(individualID, eventID, taxonID, siteID,  domainID,eventID, utmZone, stemDiameter, height, maxCrownDiameter, UTM_E, UTM_N) %>%
   unique
 
 dataset <- dataset[!is.na(dataset$UTM_E),]
 colnames(dataset)[colnames(dataset) %in% c("UTM_E", "UTM_N")] <-  c("easting", "northing")
 dataset[which(dataset$siteID=="STEI"),] <- convert_stei(dataset[which(dataset$siteID=="STEI"),])
 #dataset <- dataset[!dataset$siteID=="MLBS",]
-
+#//orange/ewhite/NeonData/TALL/DP1.30006.001/2017/FullSite/D08/2017_TALL_3/L3/Spectrometer/Reflectance/
 NeonSites = argument_values[6]
 
 # for(NeonSites in unique(dataset$siteID)){
@@ -57,16 +57,16 @@ epsg <- get_epsg_from_utm(unique(centroids$siteID))
 pt <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
             "/", year,"_", NeonSites, "/", "L1/DiscreteLidar/ClassifiedPointCloud/", sep="")
 f_path <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30006.001/", year, "/FullSite/", unique(centroids$domainID), "/",
-                "/", year,"_", NeonSites,"/", "L1/Spectrometer/H5/", sep="")
+                "/", year,"_", NeonSites,"/", "L3/Spectrometer/Reflectance/", sep="")
 
 chm_f <- paste("//orange/ewhite/NeonData/", NeonSites, "/DP1.30003.001/", year, "/FullSite/", unique(centroids$domainID), "/",
                "/", year,"_", NeonSites, "/", "L3/CHM/", sep="")
 
 crownITC(pt, wd = wd, pttrn = paste(tileID[,1], "_", tileID[,2], sep=""),
-         epsg = epsg, cores = 18, chm_f = chm_f,
+         epsg = epsg, cores = 12, chm_f = chm_f,
          pybin = "/home/s.marconi/.conda/envs/quetzal3/bin")
 #pybin = "/Users/sergiomarconi/anaconda3/bin/")
 hps_f = list.files(f_path)
 extract_crown_data(centroids = centroids, hps_f = hps_f, f_path = f_path, 
-                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 32)
+                   chm_f = chm_f, epsg=epsg, wd = wd,NeonSites=NeonSites, cores = 12)
 

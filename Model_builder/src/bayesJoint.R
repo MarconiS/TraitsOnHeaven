@@ -3,7 +3,7 @@ library(brms)
 library(tidyverse)
 coreNum <- 2
 
-nComp = 40
+nComp = 20
 augmented_matrix <- readr::read_csv('Model_builder/dat/Crown_norm.csv') 
 set.seed(1)
 augmented_matrix$band_species <- factor(augmented_matrix$band_species)
@@ -43,19 +43,19 @@ traindata %>% dplyr::select(-one_of(colnames(y_obs[-1]))) %>% plot_spectra
 # i = i+1
 # fill NAs
 library(mice)
-imp <- mice(traindata, m = 5, print = FALSE)
+imp <- mice(traindata, m = 1, print = FALSE)
 list_formulas <- paste(paste("cbind(", paste(colnames(Y[-1]), collapse = " , "), ") ~ ", sep = ""),
-                       paste(colnames(X), collapse = " + "), "+ (1 | p | gr(site_ID))")
+                       paste(colnames(X), collapse = " + "))#, "+ (1 | p | gr(site_ID))")
 
 # list_formulas <- paste(paste("cbind(", paste(colnames(Y[-1]), collapse = " , "), ") ~ ", sep = ""), 
 #                        #paste(colnames(X$x[,1:nComp]), collapse = " + "),  
 #                        "(1 | p | gr(species_ID : site_ID))")#, "+ (1 | b | species_ID)")
 
-fit <- brm_multiple(list_formulas, data = imp, cores =coreNum, chains = 8, iter = 2000,  
-                    set_prior("lasso(1)", class = "b"), 
+fit <- brm_multiple(list_formulas, data = imp, cores =coreNum, chains = 2, iter = 200,  
+                    set_prior("horseshoe()", class = "b"), 
                     #set_prior("lasso()", class = "cor"),
                     #set_rescor(TRUE), 
-                    #autocor = cor_ar(~ 1 | species_ID : site_ID),
+                    #autocor = cor_ar(~ 1 | site_ID),
                     #set_prior("lasso()", class = "ar"),
                     #set_prior("<prior>", class = "Intercept"),
                     #set_prior("<prior>", class = "sd", group = "<group>"),
@@ -79,7 +79,7 @@ X_tst <- hiper_features(test_mat, normalization = "norm2") #, normalization = "n
 #X_tst <- predict(X, X_tst)
 #Y_tst <- inner_join(test_mat["individualID"], y_test)  #train_data[!grepl("band", names(train_data))] %>%
 
-test_data <- data.frame(Y_tst[1], X_tst[,1:nComp], 
+test_data <- data.frame(Y_tst[1], X_tst, 
                    test_mat$band_species, test_mat$band_site) %>%
   data.frame 
 
