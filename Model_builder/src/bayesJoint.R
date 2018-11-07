@@ -17,14 +17,11 @@ source("Model_builder/src/utility.R")
 y_obs <- augmented_matrix[!(colnames(augmented_matrix) %in% 
                               c("flightpath", "band_site", "band_species", paste("band_", seq(1,369), sep="")))] %>%
   unique
-
-#augmented_matrix %>% dplyr::select(-one_of(colnames(y_obs[-1]))) %>% plot_spectra
-
 train_data <- augmented_matrix[complete.cases(augmented_matrix[colnames(augmented_matrix) %in% 
                                           paste("band_", seq(1,369), sep="")]), ]
 X <- hiper_features(train_data, normalization = "norm2")  #%>% #, normalization = "no") %>%
-#  prcomp 
 
+#  prcomp 
 Y <- inner_join(train_data["individualID"], y_obs) #train_data[!grepl("band", names(train_data))] %>%
 #data.frame(Y[1], X) %>% dplyr::select(-one_of(colnames(Y[-1]))) %>% plot_spectra
 
@@ -37,7 +34,8 @@ traindata <- data.frame(Y, X, #$x[,1:nComp],
 n_features <- dim(traindata)[2]-1
 colnames(traindata)[(n_features):(n_features+1)] <- c("species_ID", "site_ID")
 traindata %>% dplyr::select(-one_of(colnames(y_obs[-1]))) %>% plot_spectra
-
+pls_transform(traindata)
+  
 # i = 2
 # ggplot(data = y_obs, aes_string(x = colnames(y_obs[i]))) + geom_histogram()
 # i = i+1
