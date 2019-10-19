@@ -9,12 +9,8 @@
 #'
 
 build_model <- function(loops=1000, cores = 1, nrmlz = T, trait = "P_pct"){
-  # identify input and output folders
-  out_dir = "./outputs"
-  in_dir = "./inputs/"
-
   #are random combinations of pixels already set up?
-  combinations <- list.files(paste(in_dir, 'Permutations', sep="/"), pattern=".csv")
+  combinations <- list.files('./indir/Permutations', pattern=".csv")
   if(length(combinations)!=loops){
     #extract n combinations of pixles by extracting one per bag
     get_random_bags(loops= loops)
